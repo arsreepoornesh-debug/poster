@@ -4,6 +4,8 @@ import { SubCategoryRepository } from "@/lib/repositories/subcategory.repository
 import { PosterRepository } from "@/lib/repositories/poster.repository";
 import { UnifiedStorefront } from "@/components/storefront/unified-storefront";
 
+export const dynamic = "force-dynamic";
+
 export default async function StorefrontHomePage() {
   const [categoriesResult, subCategoriesResult, postersResult] = await Promise.all([
     CategoryRepository.findAll({ limit: 100 }),
