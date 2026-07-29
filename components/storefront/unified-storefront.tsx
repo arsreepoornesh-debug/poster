@@ -653,34 +653,51 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         localStorage.setItem("maja_posters_list", JSON.stringify(initialPosters));
       }
 
+      // Always build the authoritative categories list by merging DB categories
+      // (which have real UUIDs from initialCategories) over any locally-created ones.
+      // This ensures stale local-only entries (e.g. cat-1785...) are replaced by
+      // real DB records on every page load, so poster submissions never fail UUID checks.
+      const UUID_REGEX_LOADER = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      const seenSlugs = new Set<string>();
+      const seenNames = new Set<string>();
+      const merged: CategoryItem[] = [];
+
+      // 1. Add real DB categories first (they win over any local copies)
+      (initialCategories || []).forEach(cat => {
+        const updatedCat = { ...cat };
+        if (cat.slug === "sports" || cat.name.toLowerCase().includes("sports")) {
+          updatedCat.name = "Sports";
+          updatedCat.slug = "sports";
+        }
+        const slugKey = updatedCat.slug.toLowerCase();
+        const nameKey = updatedCat.name.toLowerCase();
+        if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey)) {
+          seenSlugs.add(slugKey);
+          seenNames.add(nameKey);
+          merged.push(updatedCat);
+        }
+      });
+
+      // 2. Add any locally-created categories that don't exist in DB yet
       const savedCategories = localStorage.getItem("maja_categories_list");
       if (savedCategories) {
         try {
-          setCategoriesList(JSON.parse(savedCategories));
+          const localCats: CategoryItem[] = JSON.parse(savedCategories);
+          localCats.forEach(cat => {
+            const slugKey = cat.slug.toLowerCase();
+            const nameKey = cat.name.toLowerCase();
+            // Only include local-only entries (non-UUID ids) that aren't already covered by DB
+            if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey) && !UUID_REGEX_LOADER.test(cat.id)) {
+              seenSlugs.add(slugKey);
+              seenNames.add(nameKey);
+              merged.push(cat);
+            }
+          });
         } catch (e) { }
-      } else {
-        // Fallback or seed
-        const seenSlugs = new Set<string>();
-        const seenNames = new Set<string>();
-        const list: CategoryItem[] = [];
-        const cats = initialCategories || [];
-        cats.forEach(cat => {
-          const updatedCat = { ...cat };
-          if (cat.slug === "sports" || cat.name.toLowerCase().includes("sports")) {
-            updatedCat.name = "Sports";
-            updatedCat.slug = "sports";
-          }
-          const slugKey = updatedCat.slug.toLowerCase();
-          const nameKey = updatedCat.name.toLowerCase();
-          if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey)) {
-            seenSlugs.add(slugKey);
-            seenNames.add(nameKey);
-            list.push(updatedCat);
-          }
-        });
-        setCategoriesList(list);
-        localStorage.setItem("maja_categories_list", JSON.stringify(list));
       }
+
+      setCategoriesList(merged);
+      localStorage.setItem("maja_categories_list", JSON.stringify(merged));
 
       const savedSubTopics = localStorage.getItem("maja_subtopics_list");
       if (savedSubTopics) {
@@ -1109,7 +1126,27 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
     if (!newCatName.trim() || !newCatAnimation) return;
     const newSlug = newCatName.toLowerCase().replace(/\s+/g, "-");
 
-    // Persist to database first, then update local state with real UUID
+    const applyCategory = (dbCat: any) => {
+      const newCatObj: CategoryItem = {
+        id: dbCat.id,
+        name: dbCat.name,
+        slug: dbCat.slug,
+        description: dbCat.description || newCatDesc || "Dynamic Admin Created Category",
+        animation: newCatAnimation,
+        imageUrl: dbCat.imageUrl || null,
+      };
+      // Replace any existing local-only entry with the same slug with the real DB record
+      setCategoriesList((prev) => {
+        const filtered = prev.filter((c) => c.slug !== dbCat.slug || UUID_REGEX.test(c.id));
+        const alreadyHasReal = filtered.some((c) => c.id === dbCat.id);
+        return alreadyHasReal ? filtered : [newCatObj, ...filtered];
+      });
+      setNewSTCategory(newSlug);
+      setNewCatName("");
+      setNewCatDesc("");
+      setNewCatAnimation("card-orbit-3d");
+    };
+
     try {
       const res = await fetch("/api/categories", {
         method: "POST",
@@ -1122,43 +1159,49 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         }),
       });
       const data = await res.json();
+
       if (data.success && data.data) {
-        // Use the real database record
-        const dbCat = data.data;
-        const newCatObj: CategoryItem = {
-          id: dbCat.id,
-          name: dbCat.name,
-          slug: dbCat.slug,
-          description: dbCat.description || newCatDesc || "Dynamic Admin Created Category",
-          animation: newCatAnimation,
-          imageUrl: dbCat.imageUrl || null,
-        };
-        setCategoriesList((prev) => [newCatObj, ...prev]);
-        setNewSTCategory(newSlug);
-        setNewCatName("");
-        setNewCatDesc("");
-        setNewCatAnimation("card-orbit-3d");
+        // Category created successfully with a real DB UUID
+        applyCategory(data.data);
         return;
       }
-    } catch (err) {
-      console.warn("Category DB save failed, falling back to local-only creation.", err);
-    }
 
-    // Fallback: create locally if DB is unavailable
-    const newCatObj: CategoryItem = {
-      id: `cat-${Date.now()}`,
-      name: newCatName,
-      slug: newSlug,
-      description: newCatDesc || "Dynamic Admin Created Category",
-      animation: newCatAnimation,
-      imageUrl: null,
-    };
-    setCategoriesList((prev) => [newCatObj, ...prev]);
-    setNewSTCategory(newSlug);
-    setNewCatName("");
-    setNewCatDesc("");
-    setNewCatAnimation("card-orbit-3d");
-    console.warn(`Category "${newCatName}" was created locally (no DB). Posters cannot be added to sub-topics under it until it exists in the database.`);
+      // If slug already exists in DB, fetch that existing category and use it
+      if (!data.success && (data.error?.includes("already exists") || res.status === 400)) {
+        try {
+          const fetchRes = await fetch(`/api/categories?search=${encodeURIComponent(newSlug)}&limit=5`);
+          const fetchData = await fetchRes.json();
+          const existingCat = (fetchData?.items || []).find(
+            (c: any) => c.slug === newSlug || c.name.toLowerCase() === newCatName.toLowerCase().trim()
+          );
+          if (existingCat) {
+            applyCategory(existingCat);
+            return;
+          }
+        } catch {
+          // Fall through
+        }
+      }
+
+      alert(`Failed to create category: ${data.error || "Unknown error"}`);
+    } catch (err) {
+      console.warn("Category DB save failed — DB may be offline.", err);
+      // Only create locally if the DB is completely unreachable
+      const newCatObj: CategoryItem = {
+        id: `cat-${Date.now()}`,
+        name: newCatName,
+        slug: newSlug,
+        description: newCatDesc || "Dynamic Admin Created Category",
+        animation: newCatAnimation,
+        imageUrl: null,
+      };
+      setCategoriesList((prev) => [newCatObj, ...prev]);
+      setNewSTCategory(newSlug);
+      setNewCatName("");
+      setNewCatDesc("");
+      setNewCatAnimation("card-orbit-3d");
+      alert("⚠️ Database unreachable. Category saved locally only — posters cannot be added until DB is connected.");
+    }
   };
 
   const handleDeleteCategoryAdmin = async (id: string) => {
