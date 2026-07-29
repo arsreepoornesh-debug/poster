@@ -26,23 +26,6 @@ export interface PosterFilterOptions {
 
 export class PosterRepository {
   public static sanitizePosterImages<T>(poster: T): T {
-    if (!poster) return poster;
-    const p = poster as any;
-    if (p.images && p.images.length > 0) {
-      const sanitizedImages = p.images.map((img: any) => {
-        if (img.url && img.url.startsWith("data:image/") && img.url.length > 150000) {
-          return {
-            ...img,
-            url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800",
-          };
-        }
-        return img;
-      });
-      return {
-        ...p,
-        images: sanitizedImages,
-      };
-    }
     return poster;
   }
 

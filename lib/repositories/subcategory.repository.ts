@@ -39,72 +39,17 @@ export class SubCategoryRepository {
   public static async findBySlug(slug: string) {
     try {
       // Use findFirst when applying non-unique filters (like deletedAt)
-      const sub = await prisma.subCategory.findFirst({
+      return await prisma.subCategory.findFirst({
         where: { slug, deletedAt: null },
         include: {
           category: true,
           collections: { where: { status: ContentStatus.PUBLISHED, deletedAt: null } },
         },
       });
-      if (sub) return sub;
     } catch (error) {
-      console.warn(`[SUBCATEGORY_DB_FALLBACK] Could not fetch subcategory slug "${slug}" from DB, checking mock data.`, error);
+      console.error(`[SUBCATEGORY_DB_ERROR] Could not fetch subcategory slug "${slug}" from DB:`, error);
+      return null;
     }
-
-    const normSlug = slug.toLowerCase();
-    if (normSlug === "supercars") {
-      return {
-        id: "sub-supercars",
-        name: "Supercars",
-        slug: "supercars",
-        description: "Ferrari, Lamborghini, Porsche, McLaren & exotic hypercars wall art prints.",
-        imageUrl: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600",
-        bannerUrl: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200",
-        category: { id: "cat-cars", name: "Cars & Automations", slug: "cars-and-automations" },
-        collections: [],
-      } as any;
-    }
-
-    if (normSlug === "jdm") {
-      return {
-        id: "sub-jdm",
-        name: "JDM Culture",
-        slug: "jdm",
-        description: "Nissan Skyline GT-R R34, Toyota Supra MK4, Mazda RX-7 & Japanese tuner legends.",
-        imageUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?w=600",
-        bannerUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200",
-        category: { id: "cat-cars", name: "Cars & Automations", slug: "cars-and-automations" },
-        collections: [],
-      } as any;
-    }
-
-    if (normSlug === "f1-racing") {
-      return {
-        id: "sub-f1",
-        name: "Formula 1 & Racing",
-        slug: "f1-racing",
-        description: "Ayrton Senna, Lewis Hamilton, Max Verstappen & Formula One racing tribute posters.",
-        imageUrl: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600",
-        bannerUrl: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200",
-        category: { id: "cat-cars", name: "Cars & Automations", slug: "cars-and-automations" },
-        collections: [],
-      } as any;
-    }
-
-    if (normSlug === "classic-cars") {
-      return {
-        id: "sub-classic",
-        name: "Classic & Vintage",
-        slug: "classic-cars",
-        description: "Vintage Porsche 911, Shelby Cobra, Ford Mustang GT & retro automotive classics.",
-        imageUrl: "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=600",
-        bannerUrl: "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=1200",
-        category: { id: "cat-cars", name: "Cars & Automations", slug: "cars-and-automations" },
-        collections: [],
-      } as any;
-    }
-
-    return null;
   }
 
   public static async create(data: CreateSubCategoryDTO & { slug: string; createdBy?: string }) {

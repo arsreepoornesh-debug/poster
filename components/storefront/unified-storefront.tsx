@@ -81,6 +81,7 @@ interface PosterItem {
   offerPrice?: number | null;
   description: string;
   category?: { name: string; slug: string };
+  subCategory?: { id?: string; name?: string; slug?: string } | null;
   images?: { url: string; thumbnailUrl?: string | null }[];
   isFeatured?: boolean;
   isTrending?: boolean;
@@ -145,6 +146,7 @@ function ScrollReveal({ children }: { children: React.ReactNode }) {
 
 interface UnifiedStorefrontProps {
   initialCategories: CategoryItem[];
+  initialSubCategories?: any[];
   initialPosters: PosterItem[];
 }
 
@@ -382,7 +384,7 @@ const compressImageFile = (file: File, maxWidth = 800, quality = 0.75): Promise<
   });
 };
 
-export function UnifiedStorefront({ initialCategories, initialPosters }: UnifiedStorefrontProps) {
+export function UnifiedStorefront({ initialCategories, initialSubCategories, initialPosters }: UnifiedStorefrontProps) {
   const safeSetLocalStorage = (key: string, value: string) => {
     if (typeof window !== "undefined") {
       try {
@@ -581,6 +583,8 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
   const [newCatAnimation, setNewCatAnimation] = useState("card-orbit-3d");
   const [newCatCreating, setNewCatCreating] = useState(false);
   const [newCatError, setNewCatError] = useState("");
+  const [newCatImageUrl, setNewCatImageUrl] = useState("");
+  const [newCatImageFile, setNewCatImageFile] = useState<File | null>(null);
 
   // Sub-Topics State
   const [subTopicsList, setSubTopicsList] = useState<SubTopic[]>(DEFAULT_SUBTOPICS);
@@ -589,6 +593,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
   const [newSTDesc, setNewSTDesc] = useState("");
   const [editingSubTopic, setEditingSubTopic] = useState<SubTopic | null>(null);
   const [newSTImageUrl, setNewSTImageUrl] = useState("");
+  const [newSTImageFile, setNewSTImageFile] = useState<File | null>(null);
 
   // Trending Banners State (Starts empty until added by Admin)
   const [trendingBannersList, setTrendingBannersList] = useState<Array<{
@@ -634,11 +639,17 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
   const [stEditName, setStEditName] = useState("");
   const [stEditDesc, setStEditDesc] = useState("");
   const [stEditImageUrl, setStEditImageUrl] = useState("");
+  const [stEditImageFile, setStEditImageFile] = useState<File | null>(null);
 
   // Dynamically seed initialPosters into the default subtopics on mount
   useEffect(() => {
     setSubTopicsList((prevList) => {
       return prevList.map((st) => {
+        const dbMatched = initialPosters
+          .filter((p) => p.subCategory?.slug === st.slug || p.subCategory?.id === st.id)
+          .map((p) => p.id);
+        if (dbMatched.length > 0) return { ...st, posterIds: dbMatched };
+
         if (st.posterIds.length > 0) return st;
 
         const matchedPosterIds = initialPosters
@@ -776,14 +787,53 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         try { setCategoriesList(JSON.parse(savedCategories)); } catch (e) { }
       }
 
+      const dbSubTopicsMapped: SubTopic[] = (initialSubCategories || []).map((sub: any) => ({
+        id: sub.id,
+        name: sub.name,
+        slug: sub.slug,
+        categorySlug: sub.category?.slug || "",
+        posterIds: initialPosters
+          .filter((p) => p.subCategory?.slug === sub.slug || p.subCategory?.id === sub.id)
+          .map((p) => p.id),
+        description: sub.description || "",
+        imageUrl: sub.imageUrl || null,
+      }));
+
+      const seenSubSlugs = new Set<string>();
+      const mergedSubTopics: SubTopic[] = [];
+
+      dbSubTopicsMapped.forEach(st => {
+        const key = `${st.slug}::${st.categorySlug}`;
+        if (!seenSubSlugs.has(key)) {
+          seenSubSlugs.add(key);
+          mergedSubTopics.push(st);
+        }
+      });
+
       const savedSubTopics = localStorage.getItem("maja_subtopics_list");
       if (savedSubTopics) {
         try {
-          setSubTopicsList(JSON.parse(savedSubTopics));
-        } catch (e) { }
-      } else {
-        safeSetLocalStorage("maja_subtopics_list", JSON.stringify(DEFAULT_SUBTOPICS));
+          const localSubs: SubTopic[] = JSON.parse(savedSubTopics);
+          localSubs.forEach(st => {
+            const key = `${st.slug}::${st.categorySlug}`;
+            if (!seenSubSlugs.has(key)) {
+              seenSubSlugs.add(key);
+              mergedSubTopics.push(st);
+            }
+          });
+        } catch (e) {}
+      } else if (dbSubTopicsMapped.length === 0) {
+        DEFAULT_SUBTOPICS.forEach(st => {
+          const key = `${st.slug}::${st.categorySlug}`;
+          if (!seenSubSlugs.has(key)) {
+            seenSubSlugs.add(key);
+            mergedSubTopics.push(st);
+          }
+        });
       }
+
+      setSubTopicsList(mergedSubTopics);
+      safeSetLocalStorage("maja_subtopics_list", JSON.stringify(mergedSubTopics));
 
       const savedOrders = localStorage.getItem("maja_orders_list");
       if (savedOrders) {
@@ -792,7 +842,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         } catch (e) { }
       }
     }
-  }, [initialPosters, initialCategories]);
+  }, [initialPosters, initialCategories, initialSubCategories]);
 
   // Safety net: if the server returned 0 categories (DB cold-start / connection issue),
   // fetch them client-side so the CMS works without a full page refresh.
@@ -1242,8 +1292,29 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
       setNewCatName("");
       setNewCatDesc("");
       setNewCatAnimation("card-orbit-3d");
+      setNewCatImageUrl("");
+      setNewCatImageFile(null);
       setNewCatCreating(false);
     };
+
+    let finalImgUrl = "";
+    if (newCatImageFile) {
+      const formData = new FormData();
+      formData.append("file", newCatImageFile);
+      formData.append("folder", "categories");
+      try {
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success) {
+          finalImgUrl = uploadData.url;
+        }
+      } catch (err) {
+        console.error("Category image upload failed:", err);
+      }
+    }
 
     try {
       const res = await fetch("/api/categories", {
@@ -1253,7 +1324,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
           name: newCatName,
           slug: newSlug,
           description: newCatDesc || "Dynamic Admin Created Category",
-          imageUrl: null,
+          imageUrl: finalImgUrl || null,
         }),
       });
       const data = await res.json();
@@ -1312,26 +1383,70 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
     }
   };
 
-  const handleCreateSubTopic = (e: React.FormEvent) => {
+  const handleCreateSubTopic = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSTName.trim()) return;
 
     const newSlug = newSTName.trim().toLowerCase().replace(/\s+/g, "-");
+
+    const catObj = categoriesList.find((c) => c.slug === newSTCategory);
+    if (!catObj) {
+      alert(`Category "${newSTCategory}" not found. Please create the category first.`);
+      return;
+    }
+    const categoryId = catObj.id;
 
     // Check if a sub-topic with this slug already exists in the same category
     const existing = subTopicsList.find(
       (st) => st.slug === newSlug && st.categorySlug === newSTCategory
     );
 
+    let finalImgUrl = "";
+    if (newSTImageFile) {
+      const formData = new FormData();
+      formData.append("file", newSTImageFile);
+      formData.append("folder", "categories");
+      try {
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success) {
+          finalImgUrl = uploadData.url;
+        }
+      } catch (err) {
+        console.error("Subcategory image upload failed:", err);
+      }
+    }
+
     if (existing) {
+      const updatedData = {
+        name: newSTName.trim(),
+        description: newSTDesc || existing.description || "",
+        imageUrl: finalImgUrl || existing.imageUrl || null,
+      };
+
+      const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (UUID_REGEX.test(existing.id)) {
+        try {
+          await fetch(`/api/subcategories/${existing.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedData),
+          });
+        } catch (err) {
+          console.error("Failed to patch existing subcategory in DB:", err);
+        }
+      }
+
       // MERGE: update image/description if provided, and open for poster linking
       setSubTopicsList((prev) =>
         prev.map((st) =>
           st.id === existing.id
             ? {
               ...st,
-              description: newSTDesc || st.description,
-              imageUrl: newSTImageUrl.trim() || st.imageUrl,
+              ...updatedData,
             }
             : st
         )
@@ -1339,26 +1454,55 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
       // Jump straight to editing this sub-topic so user can add posters to it
       setEditingSubTopic({
         ...existing,
-        description: newSTDesc || existing.description,
-        imageUrl: newSTImageUrl.trim() || existing.imageUrl,
+        ...updatedData,
       });
     } else {
-      // CREATE: brand new sub-topic
-      const st: SubTopic = {
-        id: `st-${Date.now()}`,
-        name: newSTName.trim(),
-        slug: newSlug,
-        categorySlug: newSTCategory,
-        posterIds: [],
-        description: newSTDesc || `${newSTName.trim()} collection`,
-        imageUrl: newSTImageUrl.trim() || null,
-      };
-      setSubTopicsList((prev) => [st, ...prev]);
+      // CREATE: brand new sub-topic in DB
+      try {
+        const createRes = await fetch("/api/subcategories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categoryId,
+            name: newSTName.trim(),
+            slug: newSlug,
+            description: newSTDesc || `${newSTName.trim()} collection`,
+            imageUrl: finalImgUrl || null,
+          }),
+        });
+        const createData = await createRes.json();
+        if (createData.success && createData.data) {
+          const st: SubTopic = {
+            id: createData.data.id,
+            name: createData.data.name,
+            slug: createData.data.slug,
+            categorySlug: newSTCategory,
+            posterIds: [],
+            description: createData.data.description || "",
+            imageUrl: createData.data.imageUrl || null,
+          };
+          setSubTopicsList((prev) => [st, ...prev]);
+        }
+      } catch (err) {
+        console.error("Failed to create subcategory in DB:", err);
+        // Fallback to local state if DB is offline
+        const st: SubTopic = {
+          id: `st-${Date.now()}`,
+          name: newSTName.trim(),
+          slug: newSlug,
+          categorySlug: newSTCategory,
+          posterIds: [],
+          description: newSTDesc || `${newSTName.trim()} collection`,
+          imageUrl: finalImgUrl || null,
+        };
+        setSubTopicsList((prev) => [st, ...prev]);
+      }
     }
 
     setNewSTName("");
     setNewSTDesc("");
     setNewSTImageUrl("");
+    setNewSTImageFile(null);
   };
 
   const handleDeleteSubTopic = async (id: string) => {
@@ -3618,6 +3762,31 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:ring-2 focus:ring-purple-500 outline-none"
                     />
                   </div>
+                  {/* Category Image */}
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-slate-300">Category Image</label>
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 flex items-center justify-center h-10 border border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-white/40 transition-all text-[10px] text-zinc-500 font-bold gap-1.5">
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        {newCatImageUrl ? "Image Set ✓" : "Upload Image"}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewCatImageUrl(URL.createObjectURL(file));
+                            setNewCatImageFile(file);
+                          }
+                        }} />
+                      </label>
+                      {newCatImageUrl && (
+                        <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-700 flex-shrink-0">
+                          <Image src={newCatImageUrl} alt="" fill className="object-cover" />
+                          <button type="button" onClick={() => { setNewCatImageUrl(""); setNewCatImageFile(null); }} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <X className="w-3 h-3 text-red-400" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="space-y-1.5">
                     <label className="font-semibold text-slate-300 flex items-center justify-between">
                       <span>Card Float Animation * <span className="text-[10px] text-purple-400 font-normal">(Compulsory - Select 1)</span></span>
@@ -3828,20 +3997,63 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
               };
 
               // Save sub-topic info edits
-              const handleSaveSTInfo = () => {
+              const handleSaveSTInfo = async () => {
                 if (!editingSubTopic) return;
-                const updated = {
-                  ...editingSubTopic,
+                
+                let finalImgUrl = stEditImageUrl;
+                if (stEditImageFile) {
+                  const formData = new FormData();
+                  formData.append("file", stEditImageFile);
+                  formData.append("folder", "categories");
+                  try {
+                    const uploadRes = await fetch("/api/upload", {
+                      method: "POST",
+                      body: formData,
+                    });
+                    const uploadData = await uploadRes.json();
+                    if (uploadData.success) {
+                      finalImgUrl = uploadData.url;
+                    }
+                  } catch (err) {
+                    console.error("Subcategory edit image upload failed:", err);
+                  }
+                }
+
+                const updatedData = {
                   name: stEditName || editingSubTopic.name,
                   description: stEditDesc || editingSubTopic.description,
-                  imageUrl: stEditImageUrl || editingSubTopic.imageUrl,
+                  imageUrl: finalImgUrl || editingSubTopic.imageUrl || null,
+                };
+
+                const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                if (UUID_REGEX.test(editingSubTopic.id)) {
+                  try {
+                    const res = await fetch(`/api/subcategories/${editingSubTopic.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(updatedData),
+                    });
+                    const resData = await res.json();
+                    if (!resData.success) {
+                      alert(`Failed to save subcategory to database: ${resData.error}`);
+                      return;
+                    }
+                  } catch (err) {
+                    console.error("Failed to patch subcategory:", err);
+                  }
+                }
+
+                const updated = {
+                  ...editingSubTopic,
+                  ...updatedData,
                 };
                 setEditingSubTopic(updated);
                 setSubTopicsList((prev) => prev.map((s) =>
-                  s.slug === editingSubTopic.slug && s.categorySlug === editingSubTopic.categorySlug
+                  s.id === editingSubTopic.id
                     ? { ...s, name: updated.name, description: updated.description, imageUrl: updated.imageUrl }
                     : s
                 ));
+                setStEditImageFile(null);
                 setActiveSubTopicPanel("LIST");
               };
 
@@ -3921,9 +4133,12 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                           <label className="flex-1 flex items-center justify-center h-10 border border-dashed border-zinc-700 rounded-xl cursor-pointer hover:border-white/40 transition-all text-[10px] text-zinc-500 font-bold gap-1.5">
                             <UploadCloud className="w-3.5 h-3.5" />
                             {newSTImageUrl ? "Image Set ✓" : "Banner Image"}
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                             <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) setNewSTImageUrl(URL.createObjectURL(file));
+                              if (file) {
+                                setNewSTImageUrl(URL.createObjectURL(file));
+                                setNewSTImageFile(file);
+                              }
                             }} />
                           </label>
                           {newSTImageUrl && (
@@ -4289,7 +4504,10 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                                       {stEditImageUrl ? "Image Changed ✓" : "Change Banner"}
                                       <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) setStEditImageUrl(URL.createObjectURL(file));
+                                        if (file) {
+                                          setStEditImageUrl(URL.createObjectURL(file));
+                                          setStEditImageFile(file);
+                                        }
                                       }} />
                                     </label>
                                     {(stEditImageUrl || editingSubTopic.imageUrl) && (
