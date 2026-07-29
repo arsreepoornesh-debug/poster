@@ -25,9 +25,30 @@ export interface PosterFilterOptions {
 }
 
 export class PosterRepository {
+  public static sanitizePosterImages<T>(poster: T): T {
+    if (!poster) return poster;
+    const p = poster as any;
+    if (p.images && p.images.length > 0) {
+      const sanitizedImages = p.images.map((img: any) => {
+        if (img.url && img.url.startsWith("data:image/") && img.url.length > 150000) {
+          return {
+            ...img,
+            url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800",
+          };
+        }
+        return img;
+      });
+      return {
+        ...p,
+        images: sanitizedImages,
+      };
+    }
+    return poster;
+  }
+
   public static async findById(id: string) {
     try {
-      return await prisma.poster.findUnique({
+      const result = await prisma.poster.findUnique({
         where: { id },
         include: {
           category: true,
@@ -38,6 +59,7 @@ export class PosterRepository {
           reviews: { where: { isApproved: true } },
         },
       });
+      return PosterRepository.sanitizePosterImages(result);
     } catch (error) {
       console.warn(`[POSTER_DB_FALLBACK] findById("${id}") failed, returning mock.`);
       return PosterRepository.getMockPosterById(id);
@@ -46,7 +68,7 @@ export class PosterRepository {
 
   public static async findBySlug(slug: string) {
     try {
-      return await prisma.poster.findUnique({
+      const result = await prisma.poster.findUnique({
         where: { slug, deletedAt: null },
         include: {
           category: true,
@@ -57,6 +79,7 @@ export class PosterRepository {
           reviews: { where: { isApproved: true } },
         },
       });
+      return PosterRepository.sanitizePosterImages(result);
     } catch (error) {
       console.warn(`[POSTER_DB_FALLBACK] findBySlug("${slug}") failed, returning mock.`);
       return PosterRepository.getMockPosterBySlug(slug);
@@ -238,7 +261,7 @@ export class PosterRepository {
       ]);
 
       return {
-        items,
+        items: items.map((item) => PosterRepository.sanitizePosterImages(item)),
         total,
         page,
         limit,
@@ -534,7 +557,7 @@ export class PosterRepository {
 
   public static async getRelatedPosters(posterId: string, categoryId: string, limit = 4) {
     try {
-      return await prisma.poster.findMany({
+      const results = await prisma.poster.findMany({
         where: {
           categoryId,
           id: { not: posterId },
@@ -547,6 +570,7 @@ export class PosterRepository {
           images: { orderBy: { sortOrder: "asc" }, take: 1 },
         },
       });
+      return results.map((p) => PosterRepository.sanitizePosterImages(p));
     } catch (error) {
       console.warn(`[POSTER_DB_FALLBACK] getRelatedPosters failed, returning mock.`);
       return PosterRepository.getMockRelatedPosters(posterId, categoryId, limit);

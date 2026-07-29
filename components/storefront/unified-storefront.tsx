@@ -329,6 +329,59 @@ function MovieSphereCanvas({ posters, onSelectPoster, title = "Movies Universe 3
   );
 }
 
+const compressImageFile = (file: File, maxWidth = 800, quality = 0.75): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = document.createElement("img");
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            "image/jpeg",
+            quality
+          );
+        } else {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 export function UnifiedStorefront({ initialCategories, initialPosters }: UnifiedStorefrontProps) {
   const safeSetLocalStorage = (key: string, value: string) => {
     if (typeof window !== "undefined") {
@@ -3311,11 +3364,12 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              setNewPosterImageFile(file);
-                              setNewPosterImageUrl(URL.createObjectURL(file)); // preview only
+                              const compressed = await compressImageFile(file);
+                              setNewPosterImageFile(compressed);
+                              setNewPosterImageUrl(URL.createObjectURL(compressed)); // preview only
                             }
                           }}
                         />
@@ -4086,11 +4140,12 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                                           <span className="text-[10px]">JPG, PNG, WEBP</span>
                                         </div>
                                       )}
-                                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
-                                          setStNewPosterImageFile(file);
-                                          setStNewPosterImageUrl(URL.createObjectURL(file));
+                                          const compressed = await compressImageFile(file);
+                                          setStNewPosterImageFile(compressed);
+                                          setStNewPosterImageUrl(URL.createObjectURL(compressed));
                                         }
                                       }} />
                                     </label>
