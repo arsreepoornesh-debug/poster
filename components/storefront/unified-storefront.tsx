@@ -330,6 +330,16 @@ function MovieSphereCanvas({ posters, onSelectPoster, title = "Movies Universe 3
 }
 
 export function UnifiedStorefront({ initialCategories, initialPosters }: UnifiedStorefrontProps) {
+  const safeSetLocalStorage = (key: string, value: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        console.warn(`[LOCALSTORAGE_QUOTA] Failed to set "${key}" in localStorage. Database persistence remains active.`, e);
+      }
+    }
+  };
+
   // Current Active Mode: "STOREFRONT" or "ADMIN_CMS"
   const [viewMode, setViewMode] = useState<"STOREFRONT" | "ADMIN_CMS">("STOREFRONT");
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: "ADMIN" | "CUSTOMER" } | null>(null);
@@ -645,7 +655,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
           },
         ];
         setTrendingBannersList(defaultBanners);
-        localStorage.setItem("maja_trending_banners", JSON.stringify(defaultBanners));
+        safeSetLocalStorage("maja_trending_banners", JSON.stringify(defaultBanners));
       }
 
       const savedPosters = localStorage.getItem("maja_posters_list");
@@ -654,7 +664,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
           setPostersList(JSON.parse(savedPosters));
         } catch (e) { }
       } else {
-        localStorage.setItem("maja_posters_list", JSON.stringify(initialPosters));
+        safeSetLocalStorage("maja_posters_list", JSON.stringify(initialPosters));
       }
 
       // Build the authoritative categories list:
@@ -707,7 +717,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
       // Only overwrite localStorage if we got a non-empty merge (don't blank it)
       if (merged.length > 0) {
         setCategoriesList(merged);
-        localStorage.setItem("maja_categories_list", JSON.stringify(merged));
+        safeSetLocalStorage("maja_categories_list", JSON.stringify(merged));
       } else if (savedCategories) {
         // DB returned 0 and localStorage is empty too — keep whatever localStorage had
         try { setCategoriesList(JSON.parse(savedCategories)); } catch (e) { }
@@ -719,7 +729,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
           setSubTopicsList(JSON.parse(savedSubTopics));
         } catch (e) { }
       } else {
-        localStorage.setItem("maja_subtopics_list", JSON.stringify(DEFAULT_SUBTOPICS));
+        safeSetLocalStorage("maja_subtopics_list", JSON.stringify(DEFAULT_SUBTOPICS));
       }
 
       const savedOrders = localStorage.getItem("maja_orders_list");
@@ -752,7 +762,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
               }));
             if (fetched.length > 0) {
               setCategoriesList(fetched);
-              localStorage.setItem("maja_categories_list", JSON.stringify(fetched));
+              safeSetLocalStorage("maja_categories_list", JSON.stringify(fetched));
             }
           }
         })
@@ -762,33 +772,23 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
 
   // Synchronize changes to LocalStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("maja_trending_banners", JSON.stringify(trendingBannersList));
-    }
+    safeSetLocalStorage("maja_trending_banners", JSON.stringify(trendingBannersList));
   }, [trendingBannersList]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("maja_posters_list", JSON.stringify(postersList));
-    }
+    safeSetLocalStorage("maja_posters_list", JSON.stringify(postersList));
   }, [postersList]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("maja_categories_list", JSON.stringify(categoriesList));
-    }
+    safeSetLocalStorage("maja_categories_list", JSON.stringify(categoriesList));
   }, [categoriesList]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("maja_subtopics_list", JSON.stringify(subTopicsList));
-    }
+    safeSetLocalStorage("maja_subtopics_list", JSON.stringify(subTopicsList));
   }, [subTopicsList]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("maja_orders_list", JSON.stringify(ordersList));
-    }
+    safeSetLocalStorage("maja_orders_list", JSON.stringify(ordersList));
   }, [ordersList]);
 
   // Keep newSTCategory parent category dropdown selection in sync with categoriesList
