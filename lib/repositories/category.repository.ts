@@ -26,6 +26,16 @@ export class CategoryRepository {
     });
   }
 
+  public static async findBySlugGlobal(slug: string) {
+    try {
+      return await prisma.category.findFirst({
+        where: { slug },
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
   public static async findBySlug(slug: string) {
     try {
       const cat = await prisma.category.findUnique({

@@ -26,6 +26,16 @@ export class SubCategoryRepository {
     });
   }
 
+  public static async findBySlugGlobal(slug: string) {
+    try {
+      return await prisma.subCategory.findFirst({
+        where: { slug },
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
   public static async findBySlug(slug: string) {
     try {
       // Use findFirst when applying non-unique filters (like deletedAt)

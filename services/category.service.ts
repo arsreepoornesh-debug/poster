@@ -18,9 +18,27 @@ export class CategoryService {
 
   public static async createCategory(dto: CreateCategoryDTO, userId?: string) {
     const slug = dto.slug ? slugify(dto.slug) : slugify(dto.name);
-    const existing = await CategoryRepository.findBySlug(slug);
+    const existing = await CategoryRepository.findBySlugGlobal(slug);
 
     if (existing) {
+      if (existing.deletedAt !== null) {
+        // Restore the soft-deleted category
+        await CategoryRepository.restore(existing.id, userId);
+        
+        // Update it with the new info
+        return CategoryRepository.update(existing.id, {
+          name: dto.name,
+          description: dto.description ?? existing.description ?? undefined,
+          animation: dto.animation ?? existing.animation ?? undefined,
+          imageUrl: dto.imageUrl ?? existing.imageUrl ?? undefined,
+          bannerUrl: dto.bannerUrl ?? existing.bannerUrl ?? undefined,
+          iconUrl: dto.iconUrl ?? existing.iconUrl ?? undefined,
+          status: dto.status ?? existing.status,
+          featured: dto.featured ?? existing.featured,
+          displayOrder: dto.displayOrder ?? existing.displayOrder,
+          updatedBy: userId,
+        });
+      }
       throw new Error(`Category with slug '${slug}' already exists`);
     }
 
@@ -89,9 +107,26 @@ export class CategoryService {
 
   public static async createSubCategory(dto: CreateSubCategoryDTO, userId?: string) {
     const slug = dto.slug ? slugify(dto.slug) : slugify(dto.name);
-    const existing = await SubCategoryRepository.findBySlug(slug);
+    const existing = await SubCategoryRepository.findBySlugGlobal(slug);
 
     if (existing) {
+      if (existing.deletedAt !== null) {
+        // Restore the soft-deleted subcategory
+        await SubCategoryRepository.restore(existing.id, userId);
+
+        // Update it with the new info
+        return SubCategoryRepository.update(existing.id, {
+          categoryId: dto.categoryId,
+          name: dto.name,
+          description: dto.description ?? existing.description ?? undefined,
+          imageUrl: dto.imageUrl ?? existing.imageUrl,
+          bannerUrl: dto.bannerUrl ?? existing.bannerUrl,
+          status: dto.status ?? existing.status,
+          featured: dto.featured ?? existing.featured,
+          displayOrder: dto.displayOrder ?? existing.displayOrder,
+          updatedBy: userId,
+        });
+      }
       throw new Error(`SubCategory with slug '${slug}' already exists`);
     }
 
