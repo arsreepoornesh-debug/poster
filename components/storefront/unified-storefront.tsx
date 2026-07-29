@@ -564,6 +564,8 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
   const [stNewPosterOfferPrice, setStNewPosterOfferPrice] = useState("499");
   const [stNewPosterImageUrl, setStNewPosterImageUrl] = useState("");
   const [stNewPosterImageFile, setStNewPosterImageFile] = useState<File | null>(null);
+  const [stPosterSubmitting, setStPosterSubmitting] = useState(false);
+  const [stPosterError, setStPosterError] = useState("");
   const [stEditName, setStEditName] = useState("");
   const [stEditDesc, setStEditDesc] = useState("");
   const [stEditImageUrl, setStEditImageUrl] = useState("");
@@ -3620,37 +3622,59 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
               const handleAddPosterToSubTopic = async (e: React.FormEvent) => {
                 e.preventDefault();
                 if (!editingSubTopic || !stNewPosterTitle.trim()) return;
-
-                // Resolve the real category record this sub-topic belongs to
-                const categoryObj = categoriesList.find((c) => c.slug === editingSubTopic.categorySlug);
-                if (!categoryObj) {
-                  alert("Error: Could not find a matching category for this sub-topic. Please recreate the sub-topic under a valid category.");
-                  return;
-                }
-                if (!UUID_REGEX.test(categoryObj.id)) {
-                  alert(`"${categoryObj.name}" was created locally and isn't saved to the database yet. Posters can only be added to categories that exist in the database.`);
-                  return;
-                }
+                setStPosterError("");
+                setStPosterSubmitting(true);
 
                 try {
+                  // Resolve the real category record this sub-topic belongs to.
+                  // First check local state, then fall back to fetching from the API.
+                  let categoryObj = categoriesList.find((c) => c.slug === editingSubTopic.categorySlug);
+                  if (!categoryObj || !UUID_REGEX.test(categoryObj.id)) {
+                    // Try fetching the category by slug from the API
+                    const catRes = await fetch(`/api/categories?search=${encodeURIComponent(editingSubTopic.categorySlug)}&limit=10`);
+                    const catData = await catRes.json();
+                    const dbCat = (catData?.items || []).find(
+                      (c: any) => c.slug === editingSubTopic.categorySlug
+                    );
+                    if (dbCat && UUID_REGEX.test(dbCat.id)) {
+                      // Update our local state with the real DB record so future ops work
+                      setCategoriesList((prev) => {
+                        const filtered = prev.filter((c) => c.slug !== dbCat.slug || UUID_REGEX.test(c.id));
+                        const alreadyHasReal = filtered.some((c) => c.id === dbCat.id);
+                        if (alreadyHasReal) return filtered;
+                        return [{ id: dbCat.id, name: dbCat.name, slug: dbCat.slug, description: dbCat.description || "", animation: "card-orbit-3d", imageUrl: dbCat.imageUrl || null }, ...filtered];
+                      });
+                      categoryObj = { id: dbCat.id, name: dbCat.name, slug: dbCat.slug, description: dbCat.description || "", animation: "card-orbit-3d", imageUrl: dbCat.imageUrl || null };
+                    }
+                  }
+
+                  if (!categoryObj) {
+                    throw new Error(`Category "${editingSubTopic.categorySlug}" not found in database. Delete this sub-topic and recreate it under a valid category.`);
+                  }
+                  if (!UUID_REGEX.test(categoryObj.id)) {
+                    throw new Error(`Category "${categoryObj.name}" is local-only (not saved to DB yet). Cannot add posters until the category exists in the database.`);
+                  }
+
                   // Make sure this sub-topic has a real database SubCategory row & UUID
                   const realSubCategoryId = await ensureRealSubCategoryId(editingSubTopic, categoryObj.id);
                   const workingSubTopic = { ...editingSubTopic, id: realSubCategoryId };
 
-                  let finalImgUrl = stNewPosterImageUrl.trim();
-
-                  // Upload image file to Supabase Storage if a file was selected
+                  // Upload the image file to Supabase Storage.
+                  // stNewPosterImageUrl is a temporary blob:// URL for preview only.
+                  let finalImgUrl = "";
                   if (stNewPosterImageFile) {
                     const fd = new FormData();
                     fd.append("file", stNewPosterImageFile);
                     fd.append("folder", "posters");
                     const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
                     const uploadData = await uploadRes.json();
-                    if (!uploadData.success) throw new Error(uploadData.error || "Upload failed");
+                    if (!uploadData.success) throw new Error(uploadData.error || "Image upload failed");
                     finalImgUrl = uploadData.url;
+                  } else if (stNewPosterImageUrl.trim() && !stNewPosterImageUrl.startsWith("blob:")) {
+                    finalImgUrl = stNewPosterImageUrl.trim();
+                  } else {
+                    throw new Error("Please select an image file by clicking the upload area.");
                   }
-
-                  if (!finalImgUrl) finalImgUrl = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800";
 
                   const baseP = parseFloat(stNewPosterBasePrice) || 799;
                   const offerP = parseFloat(stNewPosterOfferPrice) || 499;
@@ -3675,7 +3699,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                   });
                   const saveData = await saveRes.json();
                   if (!saveData?.success) {
-                    throw new Error(`Database save failed: ${saveData?.error || "unknown error"}`);
+                    throw new Error(`DB save failed: ${saveData?.error || "unknown error"}`);
                   }
 
                   const pid = saveData?.data?.id || `poster-${Date.now()}`;
@@ -3688,7 +3712,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                     basePrice: baseP,
                     offerPrice: offerP,
                     description: stNewPosterDesc || stNewPosterTitle.trim(),
-                    category: { name: editingSubTopic.categorySlug, slug: editingSubTopic.categorySlug },
+                    category: { name: categoryObj.name, slug: categoryObj.slug },
                     images: [{ url: finalImgUrl }],
                     isFeatured: false,
                     isTrending: false,
@@ -3704,10 +3728,12 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                   setStNewPosterTitle(""); setStNewPosterDesc("");
                   setStNewPosterImageUrl(""); setStNewPosterImageFile(null);
                   setStNewPosterBasePrice("799"); setStNewPosterOfferPrice("499");
+                  setStPosterError("");
                   setActiveSubTopicPanel("LIST");
-                  alert("Poster saved to database!");
                 } catch (err: any) {
-                  alert(`Error: ${err.message}`);
+                  setStPosterError(err.message || "Something went wrong.");
+                } finally {
+                  setStPosterSubmitting(false);
                 }
               };
 
@@ -4026,11 +4052,14 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                                       )}
                                       <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) setStNewPosterImageUrl(URL.createObjectURL(file));
+                                        if (file) {
+                                          setStNewPosterImageFile(file);
+                                          setStNewPosterImageUrl(URL.createObjectURL(file));
+                                        }
                                       }} />
                                     </label>
                                     {stNewPosterImageUrl && (
-                                      <button type="button" onClick={() => setStNewPosterImageUrl("")}
+                                      <button type="button" onClick={() => { setStNewPosterImageUrl(""); setStNewPosterImageFile(null); }}
                                         className="p-2 rounded-xl bg-zinc-800 text-red-400 hover:bg-red-500/20 transition-colors">
                                         <X className="w-4 h-4" />
                                       </button>
@@ -4065,13 +4094,25 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                                   </div>
                                 </div>
 
+                                {stPosterError && (
+                                  <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-medium">
+                                    ⚠️ {stPosterError}
+                                  </div>
+                                )}
+
                                 <div className="flex gap-3 pt-2">
-                                  <button type="submit" disabled={!stNewPosterTitle.trim() || !stNewPosterImageUrl.trim()}
-                                    className="flex-1 py-3 rounded-2xl text-black font-extrabold text-xs disabled:opacity-40 hover:opacity-90 transition-all"
+                                  <button
+                                    type="submit"
+                                    disabled={stPosterSubmitting || !stNewPosterTitle.trim() || (!stNewPosterImageFile && !stNewPosterImageUrl.trim())}
+                                    className="flex-1 py-3 rounded-2xl text-black font-extrabold text-xs disabled:opacity-40 hover:opacity-90 transition-all flex items-center justify-center gap-2"
                                     style={{ backgroundColor: "#D4FF3D" }}>
-                                    Save &amp; Add to {editingSubTopic.name}
+                                    {stPosterSubmitting ? (
+                                      <><span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />Saving...</>
+                                    ) : (
+                                      <>Save &amp; Add to {editingSubTopic.name}</>
+                                    )}
                                   </button>
-                                  <button type="button" onClick={() => setActiveSubTopicPanel("LIST")}
+                                  <button type="button" onClick={() => { setActiveSubTopicPanel("LIST"); setStPosterError(""); }}
                                     className="px-4 py-3 rounded-2xl border border-zinc-700 text-zinc-400 hover:text-white font-bold text-xs transition-all">
                                     Cancel
                                   </button>
