@@ -516,6 +516,8 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
   const [newCatName, setNewCatName] = useState("");
   const [newCatDesc, setNewCatDesc] = useState("");
   const [newCatAnimation, setNewCatAnimation] = useState("card-orbit-3d");
+  const [newCatCreating, setNewCatCreating] = useState(false);
+  const [newCatError, setNewCatError] = useState("");
 
   // Sub-Topics State
   const [subTopicsList, setSubTopicsList] = useState<SubTopic[]>(DEFAULT_SUBTOPICS);
@@ -655,10 +657,10 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         localStorage.setItem("maja_posters_list", JSON.stringify(initialPosters));
       }
 
-      // Always build the authoritative categories list by merging DB categories
-      // (which have real UUIDs from initialCategories) over any locally-created ones.
-      // This ensures stale local-only entries (e.g. cat-1785...) are replaced by
-      // real DB records on every page load, so poster submissions never fail UUID checks.
+      // Build the authoritative categories list:
+      // DB categories (real UUIDs) always win over stale local-only entries.
+      // IMPORTANT: if the DB returns 0 items, still keep localStorage entries so
+      // the user doesn't lose their previously loaded categories.
       const UUID_REGEX_LOADER = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
       const seenSlugs = new Set<string>();
       const seenNames = new Set<string>();
@@ -680,7 +682,9 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         }
       });
 
-      // 2. Add any locally-created categories that don't exist in DB yet
+      // 2. Add any categories saved in localStorage that aren't already from DB.
+      //    This preserves real-UUID entries from localStorage when DB returns 0 items
+      //    (e.g. during a temporary DB connection failure or cold start).
       const savedCategories = localStorage.getItem("maja_categories_list");
       if (savedCategories) {
         try {
@@ -688,8 +692,10 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
           localCats.forEach(cat => {
             const slugKey = cat.slug.toLowerCase();
             const nameKey = cat.name.toLowerCase();
-            // Only include local-only entries (non-UUID ids) that aren't already covered by DB
-            if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey) && !UUID_REGEX_LOADER.test(cat.id)) {
+            // Skip if already covered by a DB record (seenSlugs will catch it)
+            if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey)) {
+              // For local-only entries (non-UUID ids), skip if DB already has that slug
+              // (they will be resolved lazily from DB on submit)
               seenSlugs.add(slugKey);
               seenNames.add(nameKey);
               merged.push(cat);
@@ -698,8 +704,14 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         } catch (e) { }
       }
 
-      setCategoriesList(merged);
-      localStorage.setItem("maja_categories_list", JSON.stringify(merged));
+      // Only overwrite localStorage if we got a non-empty merge (don't blank it)
+      if (merged.length > 0) {
+        setCategoriesList(merged);
+        localStorage.setItem("maja_categories_list", JSON.stringify(merged));
+      } else if (savedCategories) {
+        // DB returned 0 and localStorage is empty too — keep whatever localStorage had
+        try { setCategoriesList(JSON.parse(savedCategories)); } catch (e) { }
+      }
 
       const savedSubTopics = localStorage.getItem("maja_subtopics_list");
       if (savedSubTopics) {
@@ -718,6 +730,35 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
       }
     }
   }, [initialPosters, initialCategories]);
+
+  // Safety net: if the server returned 0 categories (DB cold-start / connection issue),
+  // fetch them client-side so the CMS works without a full page refresh.
+  useEffect(() => {
+    if (categoriesList.length === 0) {
+      fetch("/api/categories?limit=100")
+        .then(r => r.json())
+        .then(data => {
+          if (data?.items?.length > 0) {
+            const UUID_REGEX_CLIENT = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+            const fetched: CategoryItem[] = data.items
+              .filter((c: any) => c.id && UUID_REGEX_CLIENT.test(c.id))
+              .map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                slug: c.slug,
+                description: c.description || "",
+                animation: c.animation || "card-orbit-3d",
+                imageUrl: c.imageUrl || null,
+              }));
+            if (fetched.length > 0) {
+              setCategoriesList(fetched);
+              localStorage.setItem("maja_categories_list", JSON.stringify(fetched));
+            }
+          }
+        })
+        .catch(() => { /* silent — will show empty state */ });
+    }
+  }, [categoriesList.length]);
 
   // Synchronize changes to LocalStorage
   useEffect(() => {
@@ -1126,6 +1167,8 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
   const handleCreateCategoryAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim() || !newCatAnimation) return;
+    setNewCatError("");
+    setNewCatCreating(true);
     const newSlug = newCatName.toLowerCase().replace(/\s+/g, "-");
 
     const applyCategory = (dbCat: any) => {
@@ -1137,7 +1180,6 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
         animation: newCatAnimation,
         imageUrl: dbCat.imageUrl || null,
       };
-      // Replace any existing local-only entry with the same slug with the real DB record
       setCategoriesList((prev) => {
         const filtered = prev.filter((c) => c.slug !== dbCat.slug || UUID_REGEX.test(c.id));
         const alreadyHasReal = filtered.some((c) => c.id === dbCat.id);
@@ -1147,6 +1189,7 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
       setNewCatName("");
       setNewCatDesc("");
       setNewCatAnimation("card-orbit-3d");
+      setNewCatCreating(false);
     };
 
     try {
@@ -1163,46 +1206,28 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
       const data = await res.json();
 
       if (data.success && data.data) {
-        // Category created successfully with a real DB UUID
         applyCategory(data.data);
         return;
       }
 
       // If slug already exists in DB, fetch that existing category and use it
       if (!data.success && (data.error?.includes("already exists") || res.status === 400)) {
-        try {
-          const fetchRes = await fetch(`/api/categories?search=${encodeURIComponent(newSlug)}&limit=5`);
-          const fetchData = await fetchRes.json();
-          const existingCat = (fetchData?.items || []).find(
-            (c: any) => c.slug === newSlug || c.name.toLowerCase() === newCatName.toLowerCase().trim()
-          );
-          if (existingCat) {
-            applyCategory(existingCat);
-            return;
-          }
-        } catch {
-          // Fall through
+        const fetchRes = await fetch(`/api/categories?search=${encodeURIComponent(newSlug)}&limit=10`);
+        const fetchData = await fetchRes.json();
+        const existingCat = (fetchData?.items || []).find(
+          (c: any) => c.slug === newSlug || c.name.toLowerCase() === newCatName.toLowerCase().trim()
+        );
+        if (existingCat) {
+          applyCategory(existingCat);
+          return;
         }
       }
 
-      alert(`Failed to create category: ${data.error || "Unknown error"}`);
+      setNewCatError(data.error || "Failed to create category. Please try again.");
     } catch (err) {
-      console.warn("Category DB save failed — DB may be offline.", err);
-      // Only create locally if the DB is completely unreachable
-      const newCatObj: CategoryItem = {
-        id: `cat-${Date.now()}`,
-        name: newCatName,
-        slug: newSlug,
-        description: newCatDesc || "Dynamic Admin Created Category",
-        animation: newCatAnimation,
-        imageUrl: null,
-      };
-      setCategoriesList((prev) => [newCatObj, ...prev]);
-      setNewSTCategory(newSlug);
-      setNewCatName("");
-      setNewCatDesc("");
-      setNewCatAnimation("card-orbit-3d");
-      alert("⚠️ Database unreachable. Category saved locally only — posters cannot be added until DB is connected.");
+      setNewCatError("Database unreachable. Check your connection and try again.");
+    } finally {
+      setNewCatCreating(false);
     }
   };
 
@@ -3559,9 +3584,20 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
                       💡 Select how poster cards in this category will float/animate when rendered in storefront.
                     </p>
                   </div>
-                  <button type="submit" className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all">
-                    Create & Render Category
+                   <button
+                    type="submit"
+                    disabled={newCatCreating || !newCatName.trim()}
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2"
+                  >
+                    {newCatCreating ? (
+                      <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating...</>
+                    ) : "Create & Render Category"}
                   </button>
+                  {newCatError && (
+                    <div className="mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium">
+                      ⚠️ {newCatError}
+                    </div>
+                  )}
                 </form>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
