@@ -1,0 +1,615 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+  MODERATOR
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PosterOrientation {
+  PORTRAIT
+  LANDSCAPE
+  SQUARE
+}
+
+enum CustomPosterStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  PRINTING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  PRINTING
+  PACKED
+  DISPATCHED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+}
+
+// ------------------------------------------------------
+// USER & SECURITY MODELS
+// ------------------------------------------------------
+
+model Admin {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String    @unique
+  password  String
+  name      String
+  role      AdminRole @default(ADMIN)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Customer {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique
+  password      String
+  name          String
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  addresses     Address[]
+  orders        Order[]
+  cart          Cart?
+  wishlist      Wishlist?
+  reviews       Review[]
+  customPosters CustomPoster[]
+}
+
+model Address {
+  id          String      @id @default(uuid()) @db.Uuid
+  customerId  String      @db.Uuid
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  street      String
+  city        String
+  state       String
+  postalCode  String
+  country     String      @default("India")
+  isDefault   Boolean     @default(false)
+  addressType AddressType @default(SHIPPING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// ------------------------------------------------------
+// DYNAMIC HIERARCHY MODELS (NO HARDCODING)
+// ------------------------------------------------------
+
+model Category {
+  id             String           @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String           @unique
+  description    String?          @db.Text
+  animation      String?          @default("float-smooth")
+  imageUrl       String?
+  bannerUrl      String?
+  iconUrl        String?
+  displayOrder   Int              @default(0)
+  featured       Boolean          @default(false)
+  status         ContentStatus    @default(PUBLISHED)
+  seoTitle       String?
+  seoDescription String?          @db.Text
+  seoKeywords    String?
+  subCategories  SubCategory[]
+  collections    Collection[]
+  banners        CategoryBanner[]
+  posters        Poster[]
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model SubCategory {
+  id             String        @id @default(uuid()) @db.Uuid
+  categoryId     String        @db.Uuid
+  category       Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String        @unique
+  description    String?       @db.Text
+  imageUrl       String?
+  bannerUrl      String?
+  displayOrder   Int           @default(0)
+  featured       Boolean       @default(false)
+  status         ContentStatus @default(PUBLISHED)
+  seoTitle       String?
+  seoDescription String?       @db.Text
+  seoKeywords    String?
+  collections    Collection[]
+  posters        Poster[]
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model Collection {
+  id             String        @id @default(uuid()) @db.Uuid
+  categoryId     String        @db.Uuid
+  category       Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategoryId  String        @db.Uuid
+  subCategory    SubCategory   @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String        @unique
+  description    String?       @db.Text
+  coverImageUrl  String?
+  bannerUrl      String?
+  displayOrder   Int           @default(0)
+  featured       Boolean       @default(false)
+  status         ContentStatus @default(PUBLISHED)
+  seoTitle       String?
+  seoDescription String?       @db.Text
+  seoKeywords    String?
+  posters        Poster[]
+  createdBy      String?
+  updatedBy      String?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model CategoryBanner {
+  id         String   @id @default(uuid()) @db.Uuid
+  categoryId String   @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  imageUrl   String
+  title      String?
+  subtitle   String?
+  linkUrl    String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// CATALOG & POSTER MODELS
+// ------------------------------------------------------
+
+model Poster {
+  id              String            @id @default(uuid()) @db.Uuid
+  title           String
+  slug            String            @unique
+  shortDescription String?          @db.Text
+  description     String            @db.Text
+  basePrice       Float
+  offerPrice      Float?
+  sku             String?           @unique
+  barcode         String?
+  categoryId      String            @db.Uuid
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subCategoryId   String            @db.Uuid
+  subCategory     SubCategory       @relation(fields: [subCategoryId], references: [id], onDelete: Restrict)
+  collectionId    String?           @db.Uuid
+  collection      Collection?       @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  tags            String[]          @default([])
+  orientation     PosterOrientation @default(PORTRAIT)
+  colorTheme      String?
+  artist          String?
+  brand           String?
+  series          String?
+  releaseYear     Int?
+  frameAvailable  Boolean           @default(true)
+  stock           Int               @default(50)
+  isFeatured      Boolean           @default(false)
+  isTrending      Boolean           @default(false)
+  isBestSeller    Boolean           @default(false)
+  isNewArrival    Boolean           @default(true)
+  status          ContentStatus     @default(PUBLISHED)
+  metaTitle       String?
+  metaDescription String?           @db.Text
+  images          PosterImage[]
+  variants        PosterVariant[]
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  wishlistItems   WishlistItem[]
+  reviews         Review[]
+  createdBy       String?
+  updatedBy       String?
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([collectionId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model PosterImage {
+  id           String   @id @default(uuid()) @db.Uuid
+  posterId     String   @db.Uuid
+  poster       Poster   @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnailUrl String?
+  publicId     String?
+  altText      String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model PosterVariant {
+  id              String     @id @default(uuid()) @db.Uuid
+  posterId        String     @db.Uuid
+  poster          Poster     @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  sizeName        String
+  priceAdjustment Float      @default(0)
+  offerPrice      Float?
+  stock           Int        @default(50)
+  weight          Float?
+  dimensions      String?
+  frameAvailable  Boolean    @default(true)
+  isDefault       Boolean    @default(false)
+  cartItems       CartItem[]
+  createdAt       DateTime   @default(now())
+}
+
+// ------------------------------------------------------
+// CUSTOM POSTER UPLOAD MODEL (ARTWORK UPLOADS)
+// ------------------------------------------------------
+
+model CustomPoster {
+  id               String                      @id @default(uuid()) @db.Uuid
+  customerId       String?                     @db.Uuid
+  customer         Customer?                   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  guestEmail       String?
+  guestName        String?
+  artworkTitle     String
+  fileUrl          String
+  previewUrl       String?
+  thumbnailUrl     String?
+  originalFileName String
+  fileType         String
+  fileSize         Int
+  width            Int?
+  height           Int?
+  selectedSize     String
+  quantity         Int                         @default(1)
+  frameRequired    Boolean                     @default(false)
+  notes            String?                     @db.Text
+  customerNotes    String?                     @db.Text
+  referenceLink    String?
+  status           CustomPosterStatus          @default(PENDING)
+  adminNotes       String?                     @db.Text
+  rejectionReason  String?                     @db.Text
+  reviewHistory    CustomPosterReviewHistory[]
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+}
+
+// ------------------------------------------------------
+// CART & WISHLIST MODELS
+// ------------------------------------------------------
+
+model Cart {
+  id         String     @id @default(uuid()) @db.Uuid
+  customerId String?    @unique @db.Uuid
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  guestToken String?    @unique
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String         @id @default(uuid()) @db.Uuid
+  cartId    String         @db.Uuid
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  posterId  String         @db.Uuid
+  poster    Poster         @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  variantId String?        @db.Uuid
+  variant   PosterVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Wishlist {
+  id         String         @id @default(uuid()) @db.Uuid
+  customerId String         @unique @db.Uuid
+  customer   Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      WishlistItem[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  wishlistId String   @db.Uuid
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  posterId   String   @db.Uuid
+  poster     Poster   @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([wishlistId, posterId])
+}
+
+// ------------------------------------------------------
+// ORDER & PAYMENT PLACEHOLDER MODELS
+// ------------------------------------------------------
+
+model Order {
+  id                  String        @id @default(uuid()) @db.Uuid
+  orderNumber         String        @unique
+  customerId          String?       @db.Uuid
+  customer            Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  guestEmail          String?
+  guestName           String?
+  shippingAddressJson Json
+  billingAddressJson  Json
+  totalAmount         Float
+  discountAmount      Float         @default(0)
+  shippingCharge      Float         @default(0)
+  finalAmount         Float
+  status              OrderStatus   @default(PENDING)
+  paymentStatus       PaymentStatus @default(UNPAID)
+  paymentGateway      String?
+  paymentId           String?
+  couponCode          String?
+  items               OrderItem[]
+  statusHistory       OrderStatusHistory[]
+  payments            Payment[]
+  invoice             Invoice?
+  shipment            Shipment?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  orderId     String   @db.Uuid
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  posterId    String   @db.Uuid
+  poster      Poster   @relation(fields: [posterId], references: [id], onDelete: Restrict)
+  variantName String?
+  unitPrice   Float
+  quantity    Int
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+}
+
+// ------------------------------------------------------
+// PROMOTIONS, REVIEWS & CONFIGURATION MODELS
+// ------------------------------------------------------
+
+model Coupon {
+  id                String     @id @default(uuid()) @db.Uuid
+  code              String     @unique
+  discountType      CouponType @default(PERCENTAGE)
+  discountValue     Float
+  minOrderAmount    Float?
+  maxDiscountAmount Float?
+  usageLimit        Int?
+  timesUsed         Int        @default(0)
+  startDate         DateTime
+  expiryDate        DateTime
+  active            Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  posterId   String   @db.Uuid
+  poster     Poster   @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?  @db.Text
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model DeliveryZone {
+  id                    String           @id @default(uuid()) @db.Uuid
+  name                  String
+  countryCode           String           @default("IN")
+  regionState           String?
+  postalCodePattern     String?
+  baseShippingFee       Float
+  freeShippingMinAmount Float?
+  estimatedDays         String?          @default("3-5 business days")
+  active                Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  shippingOptions       ShippingOption[]
+}
+
+model ShippingOption {
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String
+  price          Float
+  estimatedDays  String?      @default("3-5 business days")
+  deliveryZoneId String       @db.Uuid
+  deliveryZone   DeliveryZone @relation(fields: [deliveryZoneId], references: [id], onDelete: Cascade)
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([deliveryZoneId])
+}
+
+model Settings {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(uuid()) @db.Uuid
+  orderId   String      @db.Uuid
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  notes     String?
+  changedBy String?
+  createdAt DateTime    @default(now())
+}
+
+model CustomPosterReviewHistory {
+  id             String             @id @default(uuid()) @db.Uuid
+  customPosterId String             @db.Uuid
+  customPoster   CustomPoster       @relation(fields: [customPosterId], references: [id], onDelete: Cascade)
+  previousStatus CustomPosterStatus
+  newStatus      CustomPosterStatus
+  notes          String?
+  changedBy      String?
+  createdAt      DateTime           @default(now())
+}
+
+model Tax {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String   @default("GST")
+  rate       Float    @default(18.0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Payment {
+  id              String               @id @default(uuid()) @db.Uuid
+  orderId         String               @db.Uuid
+  order           Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentMethod   String               @default("RAZORPAY")
+  transactionId   String?              @unique
+  razorpayOrderId String?
+  amount          Float
+  currency        String               @default("INR")
+  status          PaymentStatus        @default(UNPAID)
+  gatewayResponse Json?
+  transactions    PaymentTransaction[]
+  refunds         Refund[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model PaymentTransaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  paymentId String   @db.Uuid
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  type      String   @default("CHARGE")
+  amount    Float
+  status    String
+  payload   Json?
+  createdAt DateTime @default(now())
+}
+
+model Refund {
+  id        String   @id @default(uuid()) @db.Uuid
+  paymentId String   @db.Uuid
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  refundId  String?  @unique
+  amount    Float
+  reason    String?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id            String   @id @default(uuid()) @db.Uuid
+  orderId       String   @unique @db.Uuid
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  invoiceNumber String   @unique
+  subtotal      Float
+  taxAmount     Float
+  shippingFee   Float
+  totalAmount   Float
+  pdfUrl        String?
+  issuedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
+
+model Shipment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  orderId            String   @unique @db.Uuid
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shiprocketOrderId  String?
+  shipmentId         String?
+  courierName        String?
+  awbCode            String?
+  trackingUrl        String?
+  status             String   @default("PENDING")
+  labelUrl           String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}

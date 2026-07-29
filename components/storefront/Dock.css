@@ -1,0 +1,43 @@
+.dock-outer {
+  margin: 0 auto;
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 52px;
+}
+
+.dock-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  background-color: #000000;
+  border: 1px solid #222;
+  padding: 0 0.5rem;
+  height: 38px;
+}
+
+.dock-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #120F17;
+  border: 1px solid #27272a;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  outline: none;
+  color: #fff;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.dock-item:hover {
+  background-color: #1a1622;
+  border-color: #3f3f46;
+}
