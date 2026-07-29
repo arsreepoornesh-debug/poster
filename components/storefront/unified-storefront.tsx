@@ -1161,9 +1161,26 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
     console.warn(`Category "${newCatName}" was created locally (no DB). Posters cannot be added to sub-topics under it until it exists in the database.`);
   };
 
-  const handleDeleteCategoryAdmin = (id: string) => {
+  const handleDeleteCategoryAdmin = async (id: string) => {
     const cat = categoriesList.find((c) => c.id === id);
     if (!cat) return;
+
+    const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (UUID_REGEX.test(id)) {
+      try {
+        const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!data.success) {
+          alert(`Failed to delete category: ${data.error || "Unknown error"}`);
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to delete category from DB:", err);
+        alert("Failed to delete category from database. Please check connection.");
+        return;
+      }
+    }
+
     setCategoriesList((prev) => prev.filter((c) => c.id !== id));
     setSubTopicsList((prev) => prev.filter((st) => st.categorySlug !== cat.slug));
     if (selectedCategory === cat.slug) {
@@ -1221,7 +1238,22 @@ export function UnifiedStorefront({ initialCategories, initialPosters }: Unified
     setNewSTImageUrl("");
   };
 
-  const handleDeleteSubTopic = (id: string) => {
+  const handleDeleteSubTopic = async (id: string) => {
+    const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (UUID_REGEX.test(id)) {
+      try {
+        const res = await fetch(`/api/subcategories/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!data.success) {
+          alert(`Failed to delete subcategory: ${data.error || "Unknown error"}`);
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to delete subcategory from DB:", err);
+        alert("Failed to delete subcategory from database. Please check connection.");
+        return;
+      }
+    }
     setSubTopicsList((prev) => prev.filter((st) => st.id !== id));
     if (editingSubTopic?.id === id) setEditingSubTopic(null);
   };
