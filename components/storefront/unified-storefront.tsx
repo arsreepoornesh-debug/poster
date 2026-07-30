@@ -1777,24 +1777,6 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col antialiased">
-      {/* GSAP Staggered Navigation Menu for Mobile/Tablet */}
-      {viewMode === "STOREFRONT" && (
-        <StaggeredMenu
-          className="lg:hidden"
-          position="right"
-          items={menuItems}
-          socialItems={socialItems}
-          displaySocials
-          displayItemNumbering={true}
-          menuButtonColor="#D4FF3D"
-          openMenuButtonColor="#000000"
-          changeMenuColorOnOpen={true}
-          colors={['#18181b', '#D4FF3D']}
-          logoUrl=""
-          accentColor="#D4FF3D"
-          isFixed={true}
-        />
-      )}
 
       {/* Dynamic Mode Bar when logged in as Admin */}
       {currentUser?.role === "ADMIN" && (
@@ -1831,7 +1813,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       {viewMode === "STOREFRONT" && (
         <div className="w-full flex flex-col flex-1">
           {/* Header Navigation Bar */}
-          <header className="w-full bg-black text-white border-b border-zinc-800/60 shadow-2xl z-50 relative">
+          <header className="w-full bg-black text-white border-b border-zinc-800/60 shadow-2xl z-50 sticky top-0">
             <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-4 sm:gap-6">
               {/* Logo on Left */}
               <div
@@ -1997,9 +1979,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   Track Order
                 </button>
 
-                {/* Inline compact search */}
                 <div
-                  className={`flex items-center gap-2 rounded-full border transition-all duration-300 overflow-hidden mr-16 lg:mr-0 ${isSearchExpanded
+                  className={`flex items-center gap-2 rounded-full border transition-all duration-300 overflow-hidden lg:mr-0 ${isSearchExpanded
                       ? "bg-zinc-900 border-zinc-700 px-3 py-1.5 w-[220px]"
                       : "bg-transparent border-transparent px-1 py-1 w-8"
                     }`}
@@ -2041,6 +2022,24 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                     </>
                   )}
                 </div>
+
+                {/* Mobile menu trigger inline next to search */}
+                <StaggeredMenu
+                  className="lg:hidden"
+                  position="right"
+                  items={menuItems}
+                  socialItems={socialItems}
+                  displaySocials
+                  displayItemNumbering={true}
+                  menuButtonColor="#D4FF3D"
+                  openMenuButtonColor="#000000"
+                  changeMenuColorOnOpen={true}
+                  colors={['#18181b', '#D4FF3D']}
+                  logoUrl=""
+                  accentColor="#D4FF3D"
+                  isFixed={false}
+                />
+
 
                 <button
                   onClick={async () => {
