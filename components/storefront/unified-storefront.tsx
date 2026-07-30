@@ -598,6 +598,15 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
   const [newSTImageUrl, setNewSTImageUrl] = useState("");
   const [newSTImageFile, setNewSTImageFile] = useState<File | null>(null);
 
+  // States for editing posters inside the sub-topic grid
+  const [editingPosterInGrid, setEditingPosterInGrid] = useState<PosterItem | null>(null);
+  const [stEditPosterTitle, setStEditPosterTitle] = useState("");
+  const [stEditPosterDesc, setStEditPosterDesc] = useState("");
+  const [stEditPosterBasePrice, setStEditPosterBasePrice] = useState("799");
+  const [stEditPosterOfferPrice, setStEditPosterOfferPrice] = useState("499");
+  const [stEditPosterImageUrl, setStEditPosterImageUrl] = useState("");
+  const [stEditPosterImageFile, setStEditPosterImageFile] = useState<File | null>(null);
+
   // Trending Banners State (Starts empty until added by Admin)
   const [trendingBannersList, setTrendingBannersList] = useState<Array<{
     id: string;
@@ -630,7 +639,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
   const [isPublishingPoster, setIsPublishingPoster] = useState(false);
 
   // Sub-Topic Poster Manager State
-  const [activeSubTopicPanel, setActiveSubTopicPanel] = useState<"LIST" | "ADD_POSTER" | "LINK_POSTER" | "EDIT_INFO">("LIST");
+  const [activeSubTopicPanel, setActiveSubTopicPanel] = useState<"LIST" | "ADD_POSTER" | "LINK_POSTER" | "EDIT_INFO" | "EDIT_POSTER">("LIST");
   const [stNewPosterTitle, setStNewPosterTitle] = useState("");
   const [stNewPosterDesc, setStNewPosterDesc] = useState("");
   const [stNewPosterBasePrice, setStNewPosterBasePrice] = useState("799");
@@ -1777,12 +1786,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
           socialItems={socialItems}
           displaySocials
           displayItemNumbering={true}
-          menuButtonColor="#ffffff"
+          menuButtonColor="#D4FF3D"
           openMenuButtonColor="#000000"
           changeMenuColorOnOpen={true}
-          colors={['#B497CF', '#5227FF']}
-          logoUrl="/assets/images/logo.png"
-          accentColor="#5227FF"
+          colors={['#18181b', '#D4FF3D']}
+          logoUrl=""
+          accentColor="#D4FF3D"
           isFixed={true}
         />
       )}
@@ -4154,6 +4163,71 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 }
               };
 
+              const handleUpdatePosterInGrid = async (e: React.FormEvent) => {
+                e.preventDefault();
+                if (!editingPosterInGrid || !stEditPosterTitle.trim()) return;
+                setStPosterError("");
+                setStPosterSubmitting(true);
+
+                try {
+                  let finalImgUrl = stEditPosterImageUrl.trim();
+                  if (stEditPosterImageFile) {
+                    const fd = new FormData();
+                    fd.append("file", stEditPosterImageFile);
+                    fd.append("folder", "posters");
+                    const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
+                    const uploadData = await uploadRes.json();
+                    if (!uploadData.success) throw new Error(uploadData.error || "Image upload failed");
+                    finalImgUrl = uploadData.url;
+                  }
+
+                  const baseP = parseFloat(stEditPosterBasePrice) || 799;
+                  const offerP = parseFloat(stEditPosterOfferPrice) || 499;
+
+                  const UUID_REGEX_MATCH = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                  if (UUID_REGEX_MATCH.test(editingPosterInGrid.id)) {
+                    const res = await fetch(`/api/posters/${editingPosterInGrid.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        title: stEditPosterTitle.trim(),
+                        basePrice: baseP,
+                        offerPrice: offerP,
+                        description: stEditPosterDesc || stEditPosterTitle.trim(),
+                        images: [{ url: finalImgUrl, altText: stEditPosterTitle.trim(), isPrimary: true }],
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error || "Failed to save to database");
+                  }
+
+                  // Update local state
+                  setPostersList((prev) =>
+                    prev.map((p) =>
+                      p.id === editingPosterInGrid.id
+                        ? {
+                            ...p,
+                            title: stEditPosterTitle.trim(),
+                            basePrice: baseP,
+                            offerPrice: offerP,
+                            description: stEditPosterDesc || stEditPosterTitle.trim(),
+                            images: [{ url: finalImgUrl }],
+                          }
+                        : p
+                    )
+                  );
+
+                  setStPosterError("");
+                  setActiveSubTopicPanel("LIST");
+                  setEditingPosterInGrid(null);
+                } catch (err: any) {
+                  console.error(err);
+                  setStPosterError(err.message || "Failed to update poster");
+                } finally {
+                  setStPosterSubmitting(false);
+                }
+              };
+
               // Save sub-topic info edits
               const handleSaveSTInfo = async () => {
                 if (!editingSubTopic) return;
@@ -4417,23 +4491,33 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
                           {/* Tab Bar */}
                           <div className="flex items-center border-b border-zinc-800 px-4 pt-3 gap-1">
-                            {[
-                              { key: "LIST", label: `Posters (${stPosters.length})` },
-                              { key: "ADD_POSTER", label: "+ Add New Image" },
-                              { key: "LINK_POSTER", label: "Link Existing" },
-                              { key: "EDIT_INFO", label: "Edit Info" },
-                            ].map(tab => (
-                              <button
-                                key={tab.key}
-                                onClick={() => setActiveSubTopicPanel(tab.key as any)}
-                                className={`px-3.5 py-2 rounded-t-xl text-[11px] font-extrabold transition-all border-b-2 -mb-px ${activeSubTopicPanel === tab.key
-                                    ? "text-white border-white"
-                                    : "text-zinc-500 border-transparent hover:text-zinc-300"
-                                  }`}
-                              >
-                                {tab.label}
-                              </button>
-                            ))}
+                            {(() => {
+                              const tabs = [
+                                { key: "LIST", label: `Posters (${stPosters.length})` },
+                                { key: "ADD_POSTER", label: "+ Add New Image" },
+                                { key: "LINK_POSTER", label: "Link Existing" },
+                                { key: "EDIT_INFO", label: "Edit Info" },
+                              ];
+                              if (activeSubTopicPanel === "EDIT_POSTER" && editingPosterInGrid) {
+                                tabs.push({ key: "EDIT_POSTER", label: `✏️ Editing: ${editingPosterInGrid.title}` });
+                              }
+                              return tabs.map(tab => (
+                                <button
+                                  key={tab.key}
+                                  onClick={() => {
+                                    setActiveSubTopicPanel(tab.key as any);
+                                    if (tab.key !== "EDIT_POSTER") setEditingPosterInGrid(null);
+                                    setStPosterError("");
+                                  }}
+                                  className={`px-3.5 py-2 rounded-t-xl text-[11px] font-extrabold transition-all border-b-2 -mb-px ${activeSubTopicPanel === tab.key
+                                      ? "text-[#D4FF3D] border-[#D4FF3D]"
+                                      : "text-zinc-500 border-transparent hover:text-zinc-300"
+                                    }`}
+                                >
+                                  {tab.label}
+                                </button>
+                              ));
+                            })()}
                           </div>
 
                           {/* ── Panel: Poster Grid ── */}
@@ -4458,15 +4542,48 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                         ) : (
                                           <div className="absolute inset-0 flex items-center justify-center text-2xl text-zinc-700">🖼️</div>
                                         )}
-                                        {/* Remove overlay */}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                        {/* Remove/Edit overlay */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex flex-col gap-2 items-center justify-center opacity-0 group-hover:opacity-100">
                                           <button
                                             onClick={() => {
-                                              const updated = { ...editingSubTopic, posterIds: editingSubTopic.posterIds.filter(id => id !== p.id) };
-                                              setEditingSubTopic(updated);
-                                              setSubTopicsList(prev => prev.map(s => s.id === updated.id ? updated : s));
+                                              setEditingPosterInGrid(p);
+                                              setStEditPosterTitle(p.title);
+                                              setStEditPosterDesc(p.description || "");
+                                              setStEditPosterBasePrice(String(p.basePrice));
+                                              setStEditPosterOfferPrice(String(p.offerPrice || p.basePrice));
+                                              setStEditPosterImageUrl(p.images?.[0]?.url || "");
+                                              setStEditPosterImageFile(null);
+                                              setActiveSubTopicPanel("EDIT_POSTER");
                                             }}
-                                            className="p-2 rounded-xl bg-red-500 text-white font-bold text-[10px] flex items-center gap-1 hover:bg-red-400 transition-colors"
+                                            className="px-3 py-1.5 rounded-xl bg-zinc-800 text-white font-bold text-[10px] flex items-center gap-1 hover:bg-zinc-700 transition-colors"
+                                          >
+                                            <Edit className="w-3 h-3" /> Edit Poster
+                                          </button>
+                                          <button
+                                            onClick={async () => {
+                                              if (confirm(`Are you sure you want to delete "${p.title}" permanently?`)) {
+                                                const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                                                if (UUID_REGEX.test(p.id)) {
+                                                  try {
+                                                    const res = await fetch(`/api/posters/${p.id}`, { method: "DELETE" });
+                                                    const data = await res.json();
+                                                    if (!data.success) {
+                                                      alert(`Failed to delete poster: ${data.error || "Unknown error"}`);
+                                                      return;
+                                                    }
+                                                  } catch (err) {
+                                                    console.error("Failed to delete poster:", err);
+                                                    alert("Failed to delete poster from database.");
+                                                    return;
+                                                  }
+                                                }
+                                                setPostersList(prev => prev.filter(x => x.id !== p.id));
+                                                const updated = { ...editingSubTopic, posterIds: editingSubTopic.posterIds.filter(id => id !== p.id) };
+                                                setEditingSubTopic(updated);
+                                                setSubTopicsList(prev => prev.map(s => s.id === updated.id ? updated : s));
+                                              }
+                                            }}
+                                            className="px-3 py-1.5 rounded-xl bg-red-500 text-white font-bold text-[10px] flex items-center gap-1 hover:bg-red-400 transition-colors"
                                           >
                                             <Trash2 className="w-3 h-3" /> Remove
                                           </button>
@@ -4683,6 +4800,99 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                   </button>
                                 </div>
                               </div>
+                            </div>
+                          )}
+
+                          {/* ── Panel: Edit Poster Details ── */}
+                          {activeSubTopicPanel === "EDIT_POSTER" && editingPosterInGrid && (
+                            <div className="flex-1 p-5 overflow-y-auto">
+                              <h3 className="font-extrabold text-white text-sm mb-4">Edit Poster Details: <span style={{ color: "#D4FF3D" }}>{editingPosterInGrid.title}</span></h3>
+                              <form onSubmit={handleUpdatePosterInGrid} className="space-y-4 text-xs max-w-lg">
+                                {/* Image Upload / Edit */}
+                                <div className="space-y-2">
+                                  <label className="font-bold text-zinc-400">Poster Image</label>
+                                  <div className="flex items-start gap-3">
+                                    <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-zinc-700 rounded-2xl cursor-pointer hover:border-white/30 transition-all">
+                                      {stEditPosterImageUrl ? (
+                                        <div className="relative w-full h-full rounded-xl overflow-hidden">
+                                          <Image src={stEditPosterImageUrl} alt="Preview" fill className="object-cover rounded-xl" />
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-col items-center gap-2 text-zinc-500">
+                                          <UploadCloud className="w-8 h-8" />
+                                          <span className="font-bold text-[11px]">Click to upload new image</span>
+                                          <span className="text-[10px]">JPG, PNG, WEBP</span>
+                                        </div>
+                                      )}
+                                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          const compressed = await compressImageFile(file);
+                                          setStEditPosterImageFile(compressed);
+                                          setStEditPosterImageUrl(URL.createObjectURL(compressed));
+                                        }
+                                      }} />
+                                    </label>
+                                    {stEditPosterImageUrl && (
+                                      <button type="button" onClick={() => { setStEditPosterImageUrl(""); setStEditPosterImageFile(null); }}
+                                        className="p-2 rounded-xl bg-zinc-800 text-red-400 hover:bg-red-500/20 transition-colors">
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="font-bold text-zinc-400">Poster Title *</label>
+                                  <input type="text" required value={stEditPosterTitle} onChange={e => setStEditPosterTitle(e.target.value)}
+                                    placeholder="Enter title"
+                                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white focus:border-white focus:outline-none placeholder:text-zinc-600" />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <label className="font-bold text-zinc-400">Description</label>
+                                  <input type="text" value={stEditPosterDesc} onChange={e => setStEditPosterDesc(e.target.value)}
+                                    placeholder="Short description"
+                                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white focus:border-white focus:outline-none placeholder:text-zinc-600" />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1.5">
+                                    <label className="font-bold text-zinc-400">Base Price (₹) *</label>
+                                    <input type="number" required value={stEditPosterBasePrice} onChange={e => setStEditPosterBasePrice(e.target.value)}
+                                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white focus:border-white focus:outline-none" />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="font-bold text-zinc-400">Offer Price (₹)</label>
+                                    <input type="number" value={stEditPosterOfferPrice} onChange={e => setStEditPosterOfferPrice(e.target.value)}
+                                      className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white focus:border-white focus:outline-none" />
+                                  </div>
+                                </div>
+
+                                {stPosterError && (
+                                  <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-medium">
+                                    ⚠️ {stPosterError}
+                                  </div>
+                                )}
+
+                                <div className="flex gap-3 pt-2">
+                                  <button
+                                    type="submit"
+                                    disabled={stPosterSubmitting || !stEditPosterTitle.trim() || (!stEditPosterImageUrl.trim() && !stEditPosterImageFile)}
+                                    className="flex-1 py-3 rounded-2xl text-black font-extrabold text-xs disabled:opacity-40 hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: "#D4FF3D" }}>
+                                    {stPosterSubmitting ? (
+                                      <><span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />Saving...</>
+                                    ) : (
+                                      <>Save Changes</>
+                                    )}
+                                  </button>
+                                  <button type="button" onClick={() => { setActiveSubTopicPanel("LIST"); setEditingPosterInGrid(null); setStPosterError(""); }}
+                                    className="px-4 py-3 rounded-2xl border border-zinc-700 text-zinc-400 hover:text-white font-bold text-xs transition-all">
+                                    Cancel
+                                  </button>
+                                </div>
+                              </form>
                             </div>
                           )}
                         </>
