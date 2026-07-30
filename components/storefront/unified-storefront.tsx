@@ -1963,8 +1963,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 </div>
 
                 {/* Mobile Centered Search Bar (visible only on mobile below 768px) */}
-                <div className="md:hidden flex items-center justify-center w-full max-w-[140px] sm:max-w-[200px]">
-                  <div className="flex items-center gap-1.5 rounded-full border border-zinc-850 bg-zinc-900/80 px-2.5 py-1.5 w-full">
+                <div className="md:hidden flex items-center justify-center flex-1 w-full max-w-[170px] xs:max-w-[180px] sm:max-w-[200px] min-w-[90px]">
+                  <div className="flex items-center gap-1.5 rounded-full border border-zinc-850 bg-zinc-900/80 px-2.5 py-1 w-full">
                     <Search className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
                     <input
                       type="text"
@@ -1973,8 +1973,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                         setSearchQuery(e.target.value);
                         if (activeTab !== "CATALOG") setActiveTab("CATALOG");
                       }}
-                      placeholder="Search prints..."
-                      className="w-full bg-transparent text-[10px] focus:outline-none text-white placeholder:text-zinc-500 min-w-0"
+                      placeholder="Search..."
+                      className="w-full bg-transparent text-[10px] focus:outline-none text-white placeholder:text-zinc-500 min-w-[70px] flex-1"
                     />
                     {searchQuery && (
                       <button onClick={() => setSearchQuery("")} className="text-zinc-500 hover:text-white flex-shrink-0">
@@ -5950,13 +5950,13 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 Size Preview ({previewSize === 'A3' ? '29.7 x 42 cm' : previewSize === 'A4' ? '21 x 29.7 cm' : '14.8 x 21 cm'})
               </div>
               <div
-                className={`relative rounded bg-stone-900 border-[8px] border-stone-950 shadow-2xl transition-all duration-300 ${
+                className={`relative rounded bg-transparent border-[8px] border-stone-950 shadow-2xl transition-all duration-300 ${
                   previewSize === 'A3' ? 'w-[200px] h-[283px]' :
                   previewSize === 'A4' ? 'w-[165px] h-[233px]' :
                   'w-[130px] h-[184px]'
                 }`}
               >
-                <Image src={selectedPoster.images?.[0]?.url || ""} alt={selectedPoster.title} fill className="object-cover" />
+                <Image src={selectedPoster.images?.[0]?.url || ""} alt={selectedPoster.title} fill className="object-cover w-full h-full" style={{ objectFit: 'cover' }} />
               </div>
             </div>
             <div className="space-y-4 text-xs flex flex-col justify-between">
