@@ -63,7 +63,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   const iconRef = useRef<HTMLSpanElement>(null);
   const textInnerRef = useRef<HTMLSpanElement>(null);
   const textWrapRef = useRef<HTMLSpanElement>(null);
-  const [textLines, setTextLines] = useState(['Menu', 'Close']);
+  const [textLines, setTextLines] = useState(['All', 'Close']);
 
   const openTlRef = useRef<gsap.core.Timeline | null>(null);
   const closeTweenRef = useRef<gsap.core.Tween | null>(null);
@@ -420,7 +420,15 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           aria-controls="staggered-menu-panel"
           onClick={toggleMenu}
           type="button"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
+          {/* Custom Hamburger Icon aligned to the left */}
+          <span ref={iconRef} className="sm-icon" aria-hidden="true" style={{ width: '16px', height: '12px', display: 'block', position: 'relative' }}>
+            <span className="sm-hamburger-line" />
+            <span className="sm-hamburger-line" />
+            <span className="sm-hamburger-line" />
+          </span>
+
           <span ref={textWrapRef} className="sm-toggle-textWrap" aria-hidden="true">
             <span ref={textInnerRef} className="sm-toggle-textInner">
               {textLines.map((l, i) => (
@@ -430,9 +438,11 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
               ))}
             </span>
           </span>
-          <span ref={iconRef} className="sm-icon" aria-hidden="true">
-            <span ref={plusHRef} className="sm-icon-line" />
-            <span ref={plusVRef} className="sm-icon-line sm-icon-line-v" />
+
+          {/* Dummy hidden spans for GSAP refs */}
+          <span className="hidden" aria-hidden="true">
+            <span ref={plusHRef} />
+            <span ref={plusVRef} />
           </span>
         </button>
       </header>

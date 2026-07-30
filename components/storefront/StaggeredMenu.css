@@ -388,3 +388,46 @@
     height: 100vh !important;
   }
 }
+
+@media (min-width: 1024px) {
+  .staggered-menu-wrapper {
+    display: none !important;
+  }
+}
+
+.sm-hamburger-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  border-radius: 2px;
+  transition: transform 0.3s ease, opacity 0.3s ease, top 0.3s ease;
+}
+
+.sm-hamburger-line:nth-child(1) {
+  top: 1px;
+}
+
+.sm-hamburger-line:nth-child(2) {
+  top: 5px;
+}
+
+.sm-hamburger-line:nth-child(3) {
+  top: 9px;
+}
+
+/* Open state styles for the hamburger lines */
+.staggered-menu-wrapper[data-open] .sm-hamburger-line:nth-child(1) {
+  top: 5px;
+  transform: rotate(45deg);
+}
+
+.staggered-menu-wrapper[data-open] .sm-hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.staggered-menu-wrapper[data-open] .sm-hamburger-line:nth-child(3) {
+  top: 5px;
+  transform: rotate(-45deg);
+}
