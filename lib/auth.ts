@@ -118,5 +118,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || "super-secret-nextauth-key-change-in-production-32-bytes-min",
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "super-secret-nextauth-key-change-in-production-32-bytes-min",
 });
