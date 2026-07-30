@@ -2569,6 +2569,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                             scrollEase={0.05}
                             font="bold 30px Orbitron"
                             scrollSpeed={2}
+                            onItemClick={(index) => {
+                              setSelectedPoster(filteredPosters[index]);
+                            }}
                           />
                         </div>
                         {/* Buyable poster grid below the 3D gallery */}

@@ -18,6 +18,7 @@ export interface CircularGalleryProps {
   fontUrl?: string;
   scrollSpeed?: number;
   scrollEase?: number;
+  onItemClick?: (index: number) => void;
 }
 
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
@@ -219,6 +220,8 @@ class Media {
   width: number = 0;
   widthTotal: number = 0;
   x: number = 0;
+  baseScaleX: number = 0;
+  baseScaleY: number = 0;
 
   constructor({
     geometry,
@@ -363,6 +366,17 @@ class Media {
     const x = this.plane.position.x;
     const H = this.viewport.width / 2;
 
+    // Smooth hover/selection zoom animation when item is centered (x = 0)
+    const distToCenter = Math.abs(x);
+    const maxDistance = this.viewport.width / 2;
+    const factor = Math.max(0, 1 - distToCenter / maxDistance);
+    // Smooth quadratic ease-in scale to 1.35x when centered
+    const scaleMultiplier = 1.0 + 0.35 * Math.pow(factor, 2.0);
+
+    this.plane.scale.x = this.baseScaleX * scaleMultiplier;
+    this.plane.scale.y = this.baseScaleY * scaleMultiplier;
+    this.plane.program.uniforms.uPlaneSizes.value = [this.plane.scale.x, this.plane.scale.y];
+
     if (this.bend === 0) {
       this.plane.position.y = 0;
       this.plane.rotation.z = 0;
@@ -408,8 +422,11 @@ class Media {
       }
     }
     this.scale = this.screen.height / 1500;
-    this.plane.scale.y = (this.viewport.height * (900 * this.scale)) / this.screen.height;
-    this.plane.scale.x = (this.viewport.width * (700 * this.scale)) / this.screen.width;
+    this.baseScaleY = (this.viewport.height * (900 * this.scale)) / this.screen.height;
+    this.baseScaleX = (this.viewport.width * (700 * this.scale)) / this.screen.width;
+
+    this.plane.scale.y = this.baseScaleY;
+    this.plane.scale.x = this.baseScaleX;
     this.plane.program.uniforms.uPlaneSizes.value = [this.plane.scale.x, this.plane.scale.y];
     this.padding = 2;
     this.width = this.plane.scale.x + this.padding;
@@ -432,6 +449,10 @@ class App {
   medias: Media[] = [];
   isDown: boolean = false;
   start: number = 0;
+  startY: number = 0;
+  clickStartTime: number = 0;
+  lastUserScrollTime: number = 0;
+  onItemClick: ((index: number) => void) | undefined;
   screen: any;
   viewport: any;
   raf: number = 0;
@@ -452,11 +473,13 @@ class App {
       font = "bold 30px Figtree",
       scrollSpeed = 2,
       scrollEase = 0.05,
+      onItemClick,
     }: any = {}
   ) {
     document.documentElement.classList.remove("no-js");
     this.container = container;
     this.scrollSpeed = scrollSpeed;
+    this.onItemClick = onItemClick;
     this.scroll = { ease: scrollEase, current: 0, target: 0, last: 0 };
     this.onCheckDebounce = debounce(this.onCheck.bind(this), 200);
     this.createRenderer();
@@ -538,23 +561,94 @@ class App {
     this.isDown = true;
     this.scroll.position = this.scroll.current;
     this.start = e.touches ? e.touches[0].clientX : e.clientX;
+    this.startY = e.touches ? e.touches[0].clientY : e.clientY;
+    this.clickStartTime = performance.now();
+    this.lastUserScrollTime = performance.now();
   }
 
   onTouchMove(e: any) {
-    if (!this.isDown) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const distance = (this.start - x) * (this.scrollSpeed * 0.025);
-    this.scroll.target = (this.scroll.position || 0) + distance;
+    const xVal = e.touches ? e.touches[0].clientX : e.clientX;
+    if (this.isDown) {
+      const distance = (this.start - xVal) * (this.scrollSpeed * 0.025);
+      this.scroll.target = (this.scroll.position || 0) + distance;
+      this.lastUserScrollTime = performance.now();
+    } else {
+      // Hover detection to auto-scroll center hovered poster
+      if (performance.now() - this.lastUserScrollTime > 1200) {
+        if (!this.container || !this.medias || this.medias.length === 0) return;
+        const rect = this.container.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        const hoverX = clientX - rect.left;
+        
+        const normX = (hoverX / rect.width) * 2 - 1;
+        const webglHoverX = normX * (this.viewport.width / 2);
+
+        let closestMedia = null;
+        let minDistance = Infinity;
+
+        for (const media of this.medias) {
+          const distance = Math.abs(webglHoverX - media.plane.position.x);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestMedia = media;
+          }
+        }
+
+        if (closestMedia && minDistance < closestMedia.plane.scale.x * 0.6) {
+          const targetScroll = closestMedia.x - closestMedia.extra;
+          this.scroll.target = lerp(this.scroll.target, targetScroll, 0.08);
+        }
+      }
+    }
   }
 
-  onTouchUp() {
+  onTouchUp(e: any) {
     this.isDown = false;
     this.onCheck();
+
+    // Detect click
+    const endX = e.changedTouches ? e.changedTouches[0].clientX : (e.touches ? e.touches[0].clientX : e.clientX);
+    const endY = e.changedTouches ? e.changedTouches[0].clientY : (e.touches ? e.touches[0].clientY : e.clientY);
+    const dx = Math.abs(endX - this.start);
+    const dy = Math.abs(endY - this.startY);
+    const duration = performance.now() - this.clickStartTime;
+
+    if (dx < 6 && dy < 6 && duration < 300) {
+      this.onClickItem(e);
+    }
+  }
+
+  onClickItem(e: any) {
+    if (!this.container || !this.medias || this.medias.length === 0) return;
+    const rect = this.container.getBoundingClientRect();
+    const clientX = e.clientX || (e.changedTouches ? e.changedTouches[0].clientX : 0);
+    const clickX = clientX - rect.left;
+    
+    const normX = (clickX / rect.width) * 2 - 1;
+    const webglClickX = normX * (this.viewport.width / 2);
+
+    let closestMedia = null;
+    let minDistance = Infinity;
+
+    for (const media of this.medias) {
+      const distance = Math.abs(webglClickX - media.plane.position.x);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestMedia = media;
+      }
+    }
+
+    if (closestMedia && minDistance < closestMedia.plane.scale.x * 0.7) {
+      if (this.onItemClick) {
+        this.onItemClick(closestMedia.index % (this.mediasImages.length / 2));
+      }
+    }
   }
 
   onWheel(e: any) {
     const delta = e.deltaY || e.wheelDelta || e.detail;
     this.scroll.target += (delta > 0 ? this.scrollSpeed : -this.scrollSpeed) * 0.2;
+    this.lastUserScrollTime = performance.now();
     this.onCheckDebounce();
   }
 
@@ -675,6 +769,7 @@ export default function CircularGallery({
   fontUrl,
   scrollSpeed = 2,
   scrollEase = 0.05,
+  onItemClick,
 }: CircularGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -691,6 +786,7 @@ export default function CircularGallery({
         font: resolvedFont,
         scrollSpeed,
         scrollEase,
+        onItemClick,
       });
     });
 
