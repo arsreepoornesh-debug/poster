@@ -49,17 +49,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { verifyAdmin } from "@/lib/auth";
+
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const { isAdmin, userId } = await verifyAdmin(req);
+    if (!isAdmin || !userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
     const validatedData = CreatePosterSchema.parse(body);
 
-    const poster = await PosterService.createPoster(validatedData, session.user.id);
+    const poster = await PosterService.createPoster(validatedData, userId);
 
     return NextResponse.json(
       { success: true, data: poster, message: "Poster created successfully" },

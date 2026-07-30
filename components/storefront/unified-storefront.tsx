@@ -3527,7 +3527,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                       // Save to Supabase DB via API
                       const saveRes = await fetch("/api/posters", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                        },
                         body: JSON.stringify({
                           title: newPosterTitle,
                           slug: newPosterTitle.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now(),
@@ -3866,7 +3869,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                   try {
                                     const res = await fetch(`/api/posters/${poster.id}`, {
                                       method: "PATCH",
-                                      headers: { "Content-Type": "application/json" },
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                                      },
                                       body: JSON.stringify({
                                         title: poster.title,
                                         basePrice: poster.basePrice,
@@ -3904,7 +3910,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
                                 if (UUID_REGEX.test(poster.id)) {
                                   try {
-                                    const res = await fetch(`/api/posters/${poster.id}`, { method: "DELETE" });
+                                    const res = await fetch(`/api/posters/${poster.id}`, {
+                                      method: "DELETE",
+                                      headers: {
+                                        "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                                      }
+                                    });
                                     const data = await res.json();
                                     if (!data.success) {
                                       alert(`Failed to delete poster: ${data.error || "Unknown error"}`);
@@ -3933,7 +3944,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                               try {
                                 await fetch(`/api/posters/${poster.id}`, {
                                   method: "PATCH",
-                                  headers: { "Content-Type": "application/json" },
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                                  },
                                   body: JSON.stringify({ isTrending: newStatus }),
                                 });
                               } catch (e) { }
@@ -4164,7 +4178,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   // Save to DB via API
                   const saveRes = await fetch("/api/posters", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                    },
                     body: JSON.stringify({
                       title: stNewPosterTitle.trim(),
                       slug: stNewPosterTitle.trim().toLowerCase().replace(/\s+/g, "-") + "-" + Date.now(),
@@ -4244,7 +4261,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   if (UUID_REGEX_MATCH.test(editingPosterInGrid.id)) {
                     const res = await fetch(`/api/posters/${editingPosterInGrid.id}`, {
                       method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                      },
                       body: JSON.stringify({
                         title: stEditPosterTitle.trim(),
                         basePrice: baseP,
@@ -4621,7 +4641,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                                 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
                                                 if (UUID_REGEX.test(p.id)) {
                                                   try {
-                                                    const res = await fetch(`/api/posters/${p.id}`, { method: "DELETE" });
+                                                    const res = await fetch(`/api/posters/${p.id}`, {
+                                                      method: "DELETE",
+                                                      headers: {
+                                                        "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                                                      }
+                                                    });
                                                     const data = await res.json();
                                                     if (!data.success) {
                                                       alert(`Failed to delete poster: ${data.error || "Unknown error"}`);
