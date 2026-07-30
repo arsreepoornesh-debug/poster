@@ -2051,23 +2051,6 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   )}
                 </div>
 
-                {/* Mobile menu trigger inline next to search (hidden on desktop >= 768px) */}
-                <StaggeredMenu
-                  className="md:hidden"
-                  position="right"
-                  items={menuItems}
-                  socialItems={socialItems}
-                  displaySocials
-                  displayItemNumbering={true}
-                  menuButtonColor="#D4FF3D"
-                  openMenuButtonColor="#000000"
-                  changeMenuColorOnOpen={true}
-                  colors={['#18181b', '#D4FF3D']}
-                  logoUrl=""
-                  accentColor="#D4FF3D"
-                  isFixed={false}
-                />
-
 
                 <button
                   onClick={async () => {
@@ -2125,6 +2108,24 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                     </span>
                   )}
                 </button>
+
+                {/* Mobile menu trigger inline next to search (hidden on desktop >= 768px) */}
+                <StaggeredMenu
+                  className="md:hidden"
+                  position="right"
+                  items={menuItems}
+                  socialItems={socialItems}
+                  displaySocials
+                  displayItemNumbering={true}
+                  menuButtonColor="#D4FF3D"
+                  openMenuButtonColor="#000000"
+                  changeMenuColorOnOpen={true}
+                  colors={['#18181b', '#D4FF3D']}
+                  logoUrl=""
+                  accentColor="#D4FF3D"
+                  isFixed={false}
+                />
+
               </div>
             </div>
           </header>

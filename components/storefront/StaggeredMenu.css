@@ -367,9 +367,9 @@
 @media (max-width: 767px) {
   .staggered-menu-header {
     padding: 0 !important;
-    position: fixed !important;
-    top: 14px !important;
-    right: 16px !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
     width: auto !important;
     left: auto !important;
     height: auto !important;
