@@ -6028,14 +6028,14 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       {/* QUICK VIEW POSTER LIGHTBOX MODAL */}
       {selectedPoster && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { setSelectedPoster(null); setPreviewSize('A4'); }}>
-          <div className="w-full max-w-2xl bg-card border border-border rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center justify-center bg-zinc-950 rounded-xl p-4 min-h-[300px] border border-zinc-900 relative overflow-hidden">
+          <div className="w-full max-w-4xl bg-card border border-border rounded-3xl p-8 grid grid-cols-1 md:grid-cols-2 gap-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-col items-center justify-center bg-zinc-950 rounded-2xl p-6 min-h-[480px] border border-zinc-900 relative overflow-hidden">
               <div className="absolute top-2.5 left-2.5 text-[9px] text-zinc-500 font-mono">
                 Size Preview ({previewSize === 'A3' ? '29.7 x 42 cm' : previewSize === 'A4' ? '21 x 29.7 cm' : '14.8 x 21 cm'})
               </div>
               {(() => {
-                const maxW = previewSize === 'A3' ? 283 : previewSize === 'A4' ? 233 : 184;
-                const maxH = previewSize === 'A3' ? 283 : previewSize === 'A4' ? 233 : 184;
+                const maxW = previewSize === 'A3' ? 380 : previewSize === 'A4' ? 300 : 220;
+                const maxH = previewSize === 'A3' ? 440 : previewSize === 'A4' ? 360 : 280;
                 let w = maxW;
                 let h = maxW / posterAspectRatio;
                 if (h > maxH) {
