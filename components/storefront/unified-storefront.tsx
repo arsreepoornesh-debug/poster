@@ -2591,9 +2591,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                 const idx = cart.findIndex(i => i.poster.id === poster.id);
                                 return (
                                   <div key={poster.id} className={`bg-zinc-950 rounded-2xl overflow-hidden border group hover:-translate-y-1 transition-all duration-300 ${cartAnimatingId === poster.id ? "border-[#D4FF3D] ring-2 ring-[#D4FF3D]/20" : "border-zinc-800"}`}>
-                                    <div className="relative aspect-square overflow-hidden">
+                                    <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900/40">
                                       {poster.images?.[0]?.url ? (
-                                        <Image src={poster.images[0].url} alt={poster.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <Image src={poster.images[0].url} alt={poster.title} fill className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500" style={{ objectFit: 'contain' }} />
                                       ) : (
                                         <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center text-zinc-700 text-xs font-bold">No Image</div>
                                       )}
@@ -2645,9 +2645,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                 const idx = cart.findIndex(i => i.poster.id === poster.id);
                                 return (
                                   <div key={poster.id} className={`bg-zinc-950 rounded-2xl overflow-hidden border group hover:-translate-y-1 transition-all duration-300 ${cartAnimatingId === poster.id ? "border-[#D4FF3D] ring-2 ring-[#D4FF3D]/20" : "border-zinc-800"}`}>
-                                    <div className="relative aspect-square overflow-hidden">
+                                    <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900/40">
                                       {poster.images?.[0]?.url ? (
-                                        <Image src={poster.images[0].url} alt={poster.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <Image src={poster.images[0].url} alt={poster.title} fill className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500" style={{ objectFit: 'contain' }} />
                                       ) : (
                                         <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center text-zinc-700 text-xs font-bold">No Image</div>
                                       )}
@@ -2860,9 +2860,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                 const idx = cart.findIndex(i => i.poster.id === poster.id);
                                 return (
                                   <div key={poster.id} className={`bg-zinc-950 rounded-2xl overflow-hidden border group hover:-translate-y-1 transition-all duration-300 ${cartAnimatingId === poster.id ? "border-[#D4FF3D] ring-2 ring-[#D4FF3D]/20" : "border-zinc-800"}`}>
-                                    <div className="relative aspect-square overflow-hidden">
+                                    <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900/40">
                                       {poster.images?.[0]?.url ? (
-                                        <Image src={poster.images[0].url} alt={poster.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <Image src={poster.images[0].url} alt={poster.title} fill className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500" style={{ objectFit: 'contain' }} />
                                       ) : (
                                         <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center text-zinc-700 text-xs font-bold">No Image</div>
                                       )}
@@ -2904,13 +2904,14 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                               key={poster.id}
                               className={`bg-card rounded-2xl overflow-hidden border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between ${cartAnimatingId === poster.id ? "scale-105 border-[#D4FF3D] ring-2 ring-[#D4FF3D]/20 animate-pulse" : "border-border/80"}`}
                             >
-                              <div className="relative w-full aspect-square bg-muted overflow-hidden flex items-center justify-center">
+                              <div className="relative w-full aspect-[3/4] bg-muted/40 overflow-hidden flex items-center justify-center">
                                 {poster.images?.[0]?.url ? (
                                   <Image
                                     src={poster.images[0].url}
                                     alt={poster.title}
                                     fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
+                                    style={{ objectFit: 'contain' }}
                                   />
                                 ) : (
                                   <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-zinc-50 flex flex-col items-center justify-center p-4 text-center">
@@ -3810,12 +3811,13 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                           }`}
                       >
                         <div className="space-y-3">
-                          <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black border border-zinc-800">
+                          <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden bg-zinc-900/40 border border-zinc-800">
                             <Image
                               src={poster.images?.[0]?.url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=600"}
                               alt={poster.title}
                               fill
-                              className="object-cover"
+                              className="object-contain w-full h-full"
+                              style={{ objectFit: 'contain' }}
                             />
                             <span className={`absolute top-2.5 left-2.5 text-[9px] font-extrabold px-2.5 py-1 rounded uppercase shadow ${poster.isTrending ? "bg-white text-black" : "bg-zinc-800 text-zinc-400 border border-zinc-700"
                               }`}>
@@ -4641,9 +4643,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                                   {stPosters.map((p) => (
                                     <div key={p.id} className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-zinc-600 transition-all">
-                                      <div className="relative w-full aspect-square bg-zinc-800">
+                                      <div className="relative w-full aspect-[3/4] bg-zinc-900/40 overflow-hidden">
                                         {p.images?.[0]?.url ? (
-                                          <Image src={p.images[0].url} alt={p.title} fill className="object-cover" />
+                                          <Image src={p.images[0].url} alt={p.title} fill className="object-contain w-full h-full" style={{ objectFit: 'contain' }} />
                                         ) : (
                                           <div className="absolute inset-0 flex items-center justify-center text-2xl text-zinc-700">🖼️</div>
                                         )}
@@ -4829,9 +4831,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                         className={`relative cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${isLinked ? "border-white" : "border-zinc-800 hover:border-zinc-600"
                                           }`}
                                       >
-                                        <div className="relative w-full aspect-square bg-zinc-800">
+                                        <div className="relative w-full aspect-[3/4] bg-zinc-800">
                                           {p.images?.[0]?.url ? (
-                                            <Image src={p.images[0].url} alt={p.title} fill className="object-cover" />
+                                            <Image src={p.images[0].url} alt={p.title} fill className="object-contain" />
                                           ) : (
                                             <div className="absolute inset-0 flex items-center justify-center text-2xl text-zinc-700">🖼️</div>
                                           )}
