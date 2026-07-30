@@ -1362,7 +1362,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     try {
       const res = await fetch("/api/categories", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+        },
         body: JSON.stringify({
           name: newCatName,
           slug: newSlug,
@@ -1405,7 +1408,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
     if (UUID_REGEX.test(id)) {
       try {
-        const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/categories/${id}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+          }
+        });
         const data = await res.json();
         if (!data.success) {
           alert(`Failed to delete category: ${data.error || "Unknown error"}`);
@@ -1504,7 +1512,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       try {
         const createRes = await fetch("/api/subcategories", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+          },
           body: JSON.stringify({
             categoryId,
             name: newSTName.trim(),
@@ -1552,7 +1563,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
     if (UUID_REGEX.test(id)) {
       try {
-        const res = await fetch(`/api/subcategories/${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/subcategories/${id}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+          }
+        });
         const data = await res.json();
         if (!data.success) {
           alert(`Failed to delete subcategory: ${data.error || "Unknown error"}`);
@@ -4340,7 +4356,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   try {
                     const res = await fetch(`/api/subcategories/${editingSubTopic.id}`, {
                       method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${currentUser?.email || "arsp@gmail.com"}`
+                      },
                       body: JSON.stringify(updatedData),
                     });
                     const resData = await res.json();

@@ -20,13 +20,15 @@ export async function GET(
   }
 }
 
+import { verifyAdmin } from "@/lib/auth";
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const { isAdmin, userId } = await verifyAdmin(req);
+    if (!isAdmin || !userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -34,7 +36,7 @@ export async function PATCH(
     const body = await req.json();
     const validatedData = UpdateSubCategorySchema.parse(body);
 
-    const updated = await CategoryService.updateSubCategory(id, validatedData, session.user.id);
+    const updated = await CategoryService.updateSubCategory(id, validatedData, userId);
 
     return NextResponse.json({
       success: true,
@@ -51,13 +53,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    const { isAdmin, userId } = await verifyAdmin(req);
+    if (!isAdmin || !userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
-    await SubCategoryRepository.softDelete(id, session.user.id);
+    await SubCategoryRepository.softDelete(id, userId);
 
     return NextResponse.json({
       success: true,
