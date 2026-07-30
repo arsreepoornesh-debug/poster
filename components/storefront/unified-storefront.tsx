@@ -405,13 +405,22 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
   useEffect(() => {
     if (session?.user) {
-      setCurrentUser({
+      const u = {
         name: session.user.name || "Super Admin",
         email: session.user.email || (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@posterstore.com"),
         role: session.user.role as "ADMIN" | "CUSTOMER",
-      });
+      };
+      setCurrentUser(u);
+      localStorage.setItem("maja_user", JSON.stringify(u));
     } else if (sessionStatus === "unauthenticated") {
-      setCurrentUser(null);
+      const savedUser = localStorage.getItem("maja_user");
+      if (savedUser) {
+        try {
+          setCurrentUser(JSON.parse(savedUser));
+        } catch (e) {}
+      } else {
+        setCurrentUser(null);
+      }
     }
   }, [session, sessionStatus]);
 
@@ -1107,50 +1116,43 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     const isAdmin = emailClean === adminEmail || emailClean.includes("admin");
 
     try {
-      const res = await signIn("credentials", {
-        email: emailClean,
-        password: loginPassword,
-        userType: isAdmin ? "ADMIN" : "CUSTOMER",
-        redirect: false,
+      const response = await fetch("/api/auth/login-simple", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailClean,
+          password: loginPassword,
+          userType: isAdmin ? "ADMIN" : "CUSTOMER",
+        }),
       });
 
-      if (res?.error) {
-        if (res.error === "Configuration") {
-          if (isAdmin) {
-            const isMatch = loginPassword === "Poornesh@577" || loginPassword === "AdminPass123!";
-            if (!isMatch) {
-              setLoginError("Invalid email or password combination (Local Check).");
-              return;
-            }
-          } else {
-            const userFound = usersList.find(
-              (u) => u.email.toLowerCase().trim() === emailClean && u.password === loginPassword
-            );
-            if (!userFound) {
-              setLoginError("Invalid email or password combination (Local Check).");
-              return;
-            }
-          }
-        } else {
-          setLoginError(res.error === "CredentialsSignin" ? "Invalid email or password combination." : res.error);
-          return;
-        }
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setLoginError(data.error || "Invalid email or password combination.");
+        return;
       }
 
-      if (isAdmin) {
-        setCurrentUser({ name: "Super Admin", email: adminEmail, role: "ADMIN" });
+      const authenticatedUser = data.user;
+      setCurrentUser(authenticatedUser);
+      localStorage.setItem("maja_user", JSON.stringify(authenticatedUser));
+
+      if (authenticatedUser.role === "ADMIN") {
         setViewMode("ADMIN_CMS");
       } else {
-        const userFound = usersList.find(
-          (u) => u.email.toLowerCase().trim() === emailClean && u.password === loginPassword
-        );
-        setCurrentUser({
-          name: userFound?.name || "Demo Customer",
-          email: emailClean,
-          role: "CUSTOMER",
-        });
         setViewMode("STOREFRONT");
       }
+
+      // Silent trigger NextAuth signin in the background
+      try {
+        await signIn("credentials", {
+          email: emailClean,
+          password: loginPassword,
+          userType: isAdmin ? "ADMIN" : "CUSTOMER",
+          redirect: false,
+        });
+      } catch (e) {}
+
       setIsAuthModalOpen(false);
       triggerCelebration();
     } catch (err: any) {
@@ -1769,8 +1771,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       list.push({
         label: "Sign Out",
         ariaLabel: "Sign out of your account",
-        onClick: () => {
+        onClick: async () => {
+          try {
+            await signOut({ redirect: false });
+          } catch (e) {}
           setCurrentUser(null);
+          localStorage.removeItem("maja_user");
           setViewMode("STOREFRONT");
         }
       });
@@ -1812,8 +1818,11 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
             </button>
             <button
               onClick={async () => {
-                await signOut({ redirect: false });
+                try {
+                  await signOut({ redirect: false });
+                } catch (e) {}
                 setCurrentUser(null);
+                localStorage.removeItem("maja_user");
                 setViewMode("STOREFRONT");
               }}
               className="p-1 text-slate-300 hover:text-white"
@@ -2078,8 +2087,11 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                       } else {
                         const confirmLogout = window.confirm(`Logged in as ${currentUser.name} (${currentUser.email}). Click OK to Sign Out.`);
                         if (confirmLogout) {
-                          await signOut({ redirect: false });
+                          try {
+                            await signOut({ redirect: false });
+                          } catch (e) {}
                           setCurrentUser(null);
+                          localStorage.removeItem("maja_user");
                           setViewMode("STOREFRONT");
                         }
                       }
