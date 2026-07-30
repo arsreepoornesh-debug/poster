@@ -387,6 +387,13 @@
     width: 100vw !important;
     height: 100vh !important;
   }
+  .sm-toggle-textWrap {
+    display: none !important;
+  }
+}
+
+.staggered-menu-wrapper[data-open] .sm-toggle-textWrap {
+  display: inline-block !important;
 }
 
 @media (min-width: 1024px) {
