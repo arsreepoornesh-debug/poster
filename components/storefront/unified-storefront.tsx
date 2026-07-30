@@ -1980,10 +1980,11 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 </button>
 
                 <div
-                  className={`flex items-center gap-2 rounded-full border transition-all duration-300 overflow-hidden lg:mr-0 ${isSearchExpanded
-                      ? "bg-zinc-900 border-zinc-700 px-3 py-1.5 w-[220px]"
+                  className={`flex items-center gap-2 rounded-full border transition-all duration-300 overflow-hidden lg:mr-0 ${
+                    isSearchExpanded
+                      ? "bg-zinc-900 border-zinc-700 px-3 py-1.5 w-[220px] max-lg:absolute max-lg:right-4 max-lg:top-1/2 max-lg:-translate-y-1/2 max-lg:w-[calc(100vw-32px)] max-lg:max-w-[340px] max-lg:z-50"
                       : "bg-transparent border-transparent px-1 py-1 w-8"
-                    }`}
+                  }`}
                 >
                   <button
                     onClick={() => setIsSearchExpanded(!isSearchExpanded)}
@@ -2058,7 +2059,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                       setIsAuthModalOpen(true);
                     }
                   }}
-                  className="hidden lg:flex p-1 rounded-full hover:bg-zinc-800 transition-colors items-center justify-center flex-shrink-0"
+                  className="flex p-1 rounded-full hover:bg-zinc-800 transition-colors items-center justify-center flex-shrink-0"
                   title={currentUser ? `Logged in as ${currentUser.name}. Click to logout.` : "Sign In / Sign Up"}
                 >
                   {currentUser ? (
@@ -2075,7 +2076,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 {/* Wishlist Heart Icon */}
                 <button
                   onClick={() => setIsWishlistOpen(true)}
-                  className="hidden lg:flex p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors"
+                  className="flex p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors"
                 >
                   <Heart className="w-4 h-4" />
                   {wishlist.length > 0 && (
@@ -2088,7 +2089,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 {/* Cart Bag Icon */}
                 <button
                   onClick={() => setIsCartOpen(true)}
-                  className="hidden lg:flex p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors"
+                  className="flex p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   {cart.length > 0 && (
