@@ -1847,116 +1847,142 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 </div>
               </div>
 
-              <div className="hidden lg:flex flex-1 items-center justify-center gap-1 relative">
-                {(() => {
-                  const gooeyItems = [
-                    {
-                      label: (
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-[13px] leading-none">🏠</span>
-                          <span>Home</span>
-                        </span>
-                      ),
-                      isActive: !selectedCategory && !selectedSubTopic && activeTab === "CATALOG",
-                      onClick: () => {
-                        setActiveTab("CATALOG");
-                        setSelectedCategory(null);
-                        setSelectedSubTopic(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }
-                    },
-                    ...categoriesList.map((cat) => {
-                      const subs = getSubTopics(cat.slug);
-                      const isOpen = openMegaMenu === cat.slug;
-                      const isActive = selectedCategory === cat.slug;
-                      return {
+              {/* CENTER ZONE */}
+              <div className="flex-1 flex items-center justify-center">
+                {/* Desktop GooeyNav navigation bar */}
+                <div className="hidden md:flex flex-1 items-center justify-center gap-1 relative">
+                  {(() => {
+                    const gooeyItems = [
+                      {
                         label: (
                           <span className="flex items-center gap-1.5">
-                            <span>{cat.name}</span>
-                            {subs.length > 0 && (
-                              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-                            )}
+                            <span className="text-[13px] leading-none">🏠</span>
+                            <span>Home</span>
                           </span>
                         ),
-                        isActive: isActive,
-                        onHover: () => {
-                          if (megaMenuTimeoutRef.current) {
-                            clearTimeout(megaMenuTimeoutRef.current);
-                            megaMenuTimeoutRef.current = null;
-                          }
-                          if (subs.length > 0) setOpenMegaMenu(cat.slug);
-                        },
-                        onLeave: () => {
-                          if (megaMenuTimeoutRef.current) {
-                            clearTimeout(megaMenuTimeoutRef.current);
-                          }
-                          megaMenuTimeoutRef.current = setTimeout(() => {
-                            setOpenMegaMenu(prev => prev === cat.slug ? null : prev);
-                          }, 150);
-                        },
+                        isActive: !selectedCategory && !selectedSubTopic && activeTab === "CATALOG",
                         onClick: () => {
-                          navigateToCategory(cat.slug);
-                        },
-                        dropdown: isOpen && subs.length > 0 && (
-                          <div
-                            className="absolute top-full left-0 mt-1 w-64 rounded-2xl shadow-2xl border overflow-hidden z-50"
-                            style={{ backgroundColor: "#0D0D0D", borderColor: "rgba(212,255,61,0.2)" }}
-                            onMouseEnter={() => {
-                              if (megaMenuTimeoutRef.current) {
-                                clearTimeout(megaMenuTimeoutRef.current);
-                                megaMenuTimeoutRef.current = null;
-                              }
-                              setOpenMegaMenu(cat.slug);
-                            }}
-                            onMouseLeave={() => {
-                              if (megaMenuTimeoutRef.current) {
-                                clearTimeout(megaMenuTimeoutRef.current);
-                              }
-                              megaMenuTimeoutRef.current = setTimeout(() => {
-                                setOpenMegaMenu(null);
-                              }, 150);
-                            }}
-                          >
-                            <div className="p-2 space-y-0.5">
-                              <button
-                                onClick={() => navigateToCategory(cat.slug)}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors hover:bg-zinc-800"
-                                style={{ color: "#D4FF3D" }}
-                              >
-                                <Folder className="w-3.5 h-3.5" />
-                                All {cat.name}
-                              </button>
-                              <div className="h-px mx-2" style={{ backgroundColor: "rgba(212,255,61,0.1)" }} />
-                              {subs.map((st) => (
+                          setActiveTab("CATALOG");
+                          setSelectedCategory(null);
+                          setSelectedSubTopic(null);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                      },
+                      ...categoriesList.map((cat) => {
+                        const subs = getSubTopics(cat.slug);
+                        const isOpen = openMegaMenu === cat.slug;
+                        const isActive = selectedCategory === cat.slug;
+                        return {
+                          label: (
+                            <span className="flex items-center gap-1.5">
+                              <span>{cat.name}</span>
+                              {subs.length > 0 && (
+                                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                              )}
+                            </span>
+                          ),
+                          isActive: isActive,
+                          onHover: () => {
+                            if (megaMenuTimeoutRef.current) {
+                              clearTimeout(megaMenuTimeoutRef.current);
+                              megaMenuTimeoutRef.current = null;
+                            }
+                            if (subs.length > 0) setOpenMegaMenu(cat.slug);
+                          },
+                          onLeave: () => {
+                            if (megaMenuTimeoutRef.current) {
+                              clearTimeout(megaMenuTimeoutRef.current);
+                            }
+                            megaMenuTimeoutRef.current = setTimeout(() => {
+                              setOpenMegaMenu(prev => prev === cat.slug ? null : prev);
+                            }, 150);
+                          },
+                          onClick: () => {
+                            navigateToCategory(cat.slug);
+                          },
+                          dropdown: isOpen && subs.length > 0 && (
+                            <div
+                              className="absolute top-full left-0 mt-1 w-64 rounded-2xl shadow-2xl border overflow-hidden z-50"
+                              style={{ backgroundColor: "#0D0D0D", borderColor: "rgba(212,255,61,0.2)" }}
+                              onMouseEnter={() => {
+                                if (megaMenuTimeoutRef.current) {
+                                  clearTimeout(megaMenuTimeoutRef.current);
+                                  megaMenuTimeoutRef.current = null;
+                                }
+                                setOpenMegaMenu(cat.slug);
+                              }}
+                              onMouseLeave={() => {
+                                if (megaMenuTimeoutRef.current) {
+                                  clearTimeout(megaMenuTimeoutRef.current);
+                                }
+                                megaMenuTimeoutRef.current = setTimeout(() => {
+                                  setOpenMegaMenu(null);
+                                }, 150);
+                              }}
+                            >
+                              <div className="p-2 space-y-0.5">
                                 <button
-                                  key={st.id}
-                                  onClick={() => navigateToSubTopic(st)}
-                                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-left transition-colors ${selectedSubTopic === st.slug ? "text-black" : "text-zinc-300 hover:text-white hover:bg-zinc-800"}`}
-                                  style={selectedSubTopic === st.slug ? { backgroundColor: "#D4FF3D" } : {}}
+                                  onClick={() => navigateToCategory(cat.slug)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors hover:bg-zinc-800"
+                                  style={{ color: "#D4FF3D" }}
                                 >
-                                  <ChevronRight className="w-3 h-3 flex-shrink-0" />
-                                  <span className="font-semibold">{st.name}</span>
+                                  <Folder className="w-3.5 h-3.5" />
+                                  All {cat.name}
                                 </button>
-                              ))}
+                                <div className="h-px mx-2" style={{ backgroundColor: "rgba(212,255,61,0.1)" }} />
+                                {subs.map((st) => (
+                                  <button
+                                    key={st.id}
+                                    onClick={() => navigateToSubTopic(st)}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-left transition-colors ${selectedSubTopic === st.slug ? "text-black" : "text-zinc-300 hover:text-white hover:bg-zinc-800"}`}
+                                    style={selectedSubTopic === st.slug ? { backgroundColor: "#D4FF3D" } : {}}
+                                  >
+                                    <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                                    <span className="font-semibold">{st.name}</span>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )
-                      };
-                    })
-                  ];
-                  const activeIndex = gooeyItems.findIndex(item => item.isActive);
-                  return (
-                    <GooeyNav
-                      items={gooeyItems}
-                      particleCount={15}
-                      particleDistances={[90, 10]}
-                      particleR={100}
-                      initialActiveIndex={activeIndex !== -1 ? activeIndex : 0}
-                      animationTime={600}
-                      timeVariance={300}
+                          )
+                        };
+                      })
+                    ];
+                    const activeIndex = gooeyItems.findIndex(item => item.isActive);
+                    return (
+                      <GooeyNav
+                        items={gooeyItems}
+                        particleCount={15}
+                        particleDistances={[90, 10]}
+                        particleR={100}
+                        initialActiveIndex={activeIndex !== -1 ? activeIndex : 0}
+                        animationTime={600}
+                        timeVariance={300}
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* Mobile Centered Search Bar (visible only on mobile below 768px) */}
+                <div className="md:hidden flex items-center justify-center w-full max-w-[140px] sm:max-w-[200px]">
+                  <div className="flex items-center gap-1.5 rounded-full border border-zinc-850 bg-zinc-900/80 px-2.5 py-1.5 w-full">
+                    <Search className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (activeTab !== "CATALOG") setActiveTab("CATALOG");
+                      }}
+                      placeholder="Search prints..."
+                      className="w-full bg-transparent text-[10px] focus:outline-none text-white placeholder:text-zinc-500 min-w-0"
                     />
-                  );
-                })()}
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery("")} className="text-zinc-500 hover:text-white flex-shrink-0">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Right Side Icons exactly like the image with dark theme styling */}
@@ -1979,10 +2005,11 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   Track Order
                 </button>
 
+                {/* Desktop Search Bar (hidden on mobile) */}
                 <div
-                  className={`flex items-center gap-2 rounded-full border transition-all duration-300 overflow-hidden lg:mr-0 ${
+                  className={`hidden md:flex items-center gap-2 rounded-full border transition-all duration-300 overflow-hidden lg:mr-0 ${
                     isSearchExpanded
-                      ? "bg-zinc-900 border-zinc-700 px-3 py-1.5 w-[220px] max-lg:absolute max-lg:right-4 max-lg:top-1/2 max-lg:-translate-y-1/2 max-lg:w-[calc(100vw-32px)] max-lg:max-w-[340px] max-lg:z-50"
+                      ? "bg-zinc-900 border-zinc-700 px-3 py-1.5 w-[220px]"
                       : "bg-transparent border-transparent px-1 py-1 w-8"
                   }`}
                 >
@@ -2024,9 +2051,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   )}
                 </div>
 
-                {/* Mobile menu trigger inline next to search */}
+                {/* Mobile menu trigger inline next to search (hidden on desktop >= 768px) */}
                 <StaggeredMenu
-                  className="lg:hidden"
+                  className="md:hidden"
                   position="right"
                   items={menuItems}
                   socialItems={socialItems}
@@ -2059,7 +2086,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                       setIsAuthModalOpen(true);
                     }
                   }}
-                  className="flex p-1 rounded-full hover:bg-zinc-800 transition-colors items-center justify-center flex-shrink-0"
+                  className="hidden md:flex p-1 rounded-full hover:bg-zinc-800 transition-colors items-center justify-center flex-shrink-0"
                   title={currentUser ? `Logged in as ${currentUser.name}. Click to logout.` : "Sign In / Sign Up"}
                 >
                   {currentUser ? (
