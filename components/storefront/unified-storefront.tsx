@@ -6033,36 +6033,34 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
               <div className="absolute top-2.5 left-2.5 text-[9px] text-zinc-500 font-mono">
                 Size Preview ({previewSize === 'A3' ? '29.7 x 42 cm' : previewSize === 'A4' ? '21 x 29.7 cm' : '14.8 x 21 cm'})
               </div>
-              {(() => {
-                const maxW = previewSize === 'A3' ? 380 : previewSize === 'A4' ? 300 : 220;
-                const maxH = previewSize === 'A3' ? 440 : previewSize === 'A4' ? 360 : 280;
-                let w = maxW;
-                let h = maxW / posterAspectRatio;
-                if (h > maxH) {
-                  h = maxH;
-                  w = h * posterAspectRatio;
-                }
-                return (
-                  <div
-                    className="relative rounded bg-transparent border-[8px] border-stone-950 shadow-2xl transition-all duration-300"
-                    style={{ width: `${Math.round(w)}px`, height: `${Math.round(h)}px` }}
-                  >
-                    <Image
-                      src={selectedPoster.images?.[0]?.url || ""}
-                      alt={selectedPoster.title}
-                      fill
-                      className="object-contain w-full h-full"
-                      style={{ objectFit: 'contain' }}
-                      onLoad={(e) => {
-                        const img = e.target as HTMLImageElement;
-                        if (img.naturalWidth && img.naturalHeight) {
-                          setPosterAspectRatio(img.naturalWidth / img.naturalHeight);
-                        }
-                      }}
-                    />
-                  </div>
-                );
-              })()}
+              <div
+                className="relative rounded bg-transparent border-[8px] border-stone-950 shadow-2xl transition-all duration-300 w-auto"
+                style={{
+                  height: previewSize === 'A3' ? '420px' : previewSize === 'A4' ? '340px' : '260px',
+                  aspectRatio: String(posterAspectRatio)
+                }}
+              >
+                <img
+                  src={selectedPoster.images?.[0]?.url || ""}
+                  alt={selectedPoster.title}
+                  className="w-full h-full object-cover rounded-[2px]"
+                  style={{ objectFit: 'cover' }}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    if (img.naturalWidth && img.naturalHeight) {
+                      setPosterAspectRatio(img.naturalWidth / img.naturalHeight);
+                    }
+                  }}
+                  ref={(img) => {
+                    if (img && img.complete && img.naturalWidth && img.naturalHeight) {
+                      const ratio = img.naturalWidth / img.naturalHeight;
+                      if (ratio !== posterAspectRatio) {
+                        setPosterAspectRatio(ratio);
+                      }
+                    }
+                  }}
+                />
+              </div>
             </div>
             <div className="space-y-4 text-xs flex flex-col justify-between">
               <div>
