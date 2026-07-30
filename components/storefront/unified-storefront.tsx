@@ -1113,7 +1113,6 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     setLoginError(null);
 
     const emailClean = loginEmail.toLowerCase().trim();
-    const isAdmin = emailClean === adminEmail || emailClean.includes("admin");
 
     try {
       const response = await fetch("/api/auth/login-simple", {
@@ -1122,7 +1121,6 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
         body: JSON.stringify({
           email: emailClean,
           password: loginPassword,
-          userType: isAdmin ? "ADMIN" : "CUSTOMER",
         }),
       });
 
@@ -1148,7 +1146,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
         await signIn("credentials", {
           email: emailClean,
           password: loginPassword,
-          userType: isAdmin ? "ADMIN" : "CUSTOMER",
+          userType: authenticatedUser.role === "ADMIN" ? "ADMIN" : "CUSTOMER",
           redirect: false,
         });
       } catch (e) {}
