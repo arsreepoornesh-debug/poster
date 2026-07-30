@@ -2116,9 +2116,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   items={menuItems}
                   socialItems={socialItems}
                   displaySocials
-                  displayItemNumbering={true}
+                  displayItemNumbering={false}
                   menuButtonColor="#D4FF3D"
-                  openMenuButtonColor="#000000"
+                  openMenuButtonColor="#D4FF3D"
                   changeMenuColorOnOpen={true}
                   colors={['#18181b', '#D4FF3D']}
                   logoUrl=""
