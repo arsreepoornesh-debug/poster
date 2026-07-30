@@ -6029,37 +6029,15 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       {selectedPoster && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { setSelectedPoster(null); setPreviewSize('A4'); }}>
           <div className="w-full max-w-4xl bg-card border border-border rounded-3xl p-8 grid grid-cols-1 md:grid-cols-2 gap-8" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col items-center justify-center bg-zinc-950 rounded-2xl p-6 min-h-[480px] border border-zinc-900 relative overflow-hidden">
-              <div className="absolute top-2.5 left-2.5 text-[9px] text-zinc-500 font-mono">
+            <div className="relative bg-zinc-950 rounded-2xl min-h-[480px] border border-zinc-900 overflow-hidden w-full h-full flex items-center justify-center">
+              <img
+                src={selectedPoster.images?.[0]?.url || ""}
+                alt={selectedPoster.title}
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ objectFit: 'cover' }}
+              />
+              <div className="absolute top-2.5 left-2.5 text-[9px] text-zinc-100 bg-black/60 px-2.5 py-1 rounded font-mono z-10">
                 Size Preview ({previewSize === 'A3' ? '29.7 x 42 cm' : previewSize === 'A4' ? '21 x 29.7 cm' : '14.8 x 21 cm'})
-              </div>
-              <div
-                className="relative rounded bg-transparent border-[8px] border-stone-950 shadow-2xl transition-all duration-300 w-auto"
-                style={{
-                  height: previewSize === 'A3' ? '420px' : previewSize === 'A4' ? '340px' : '260px',
-                  aspectRatio: String(posterAspectRatio)
-                }}
-              >
-                <img
-                  src={selectedPoster.images?.[0]?.url || ""}
-                  alt={selectedPoster.title}
-                  className="w-full h-full object-cover rounded-[2px]"
-                  style={{ objectFit: 'cover' }}
-                  onLoad={(e) => {
-                    const img = e.currentTarget;
-                    if (img.naturalWidth && img.naturalHeight) {
-                      setPosterAspectRatio(img.naturalWidth / img.naturalHeight);
-                    }
-                  }}
-                  ref={(img) => {
-                    if (img && img.complete && img.naturalWidth && img.naturalHeight) {
-                      const ratio = img.naturalWidth / img.naturalHeight;
-                      if (ratio !== posterAspectRatio) {
-                        setPosterAspectRatio(ratio);
-                      }
-                    }
-                  }}
-                />
               </div>
             </div>
             <div className="space-y-4 text-xs flex flex-col justify-between">
