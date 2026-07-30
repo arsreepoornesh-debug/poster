@@ -480,6 +480,11 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedPoster, setSelectedPoster] = useState<PosterItem | null>(null);
+  const [posterAspectRatio, setPosterAspectRatio] = useState<number>(0.707);
+
+  useEffect(() => {
+    setPosterAspectRatio(0.707);
+  }, [selectedPoster]);
 
   // Cart & Wishlist State
   const [cart, setCart] = useState<Array<{ poster: PosterItem; quantity: number; size: string; frame: boolean }>>([]);
@@ -6026,15 +6031,36 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
               <div className="absolute top-2.5 left-2.5 text-[9px] text-zinc-500 font-mono">
                 Size Preview ({previewSize === 'A3' ? '29.7 x 42 cm' : previewSize === 'A4' ? '21 x 29.7 cm' : '14.8 x 21 cm'})
               </div>
-              <div
-                className={`relative rounded bg-transparent border-[8px] border-stone-950 shadow-2xl transition-all duration-300 ${
-                  previewSize === 'A3' ? 'w-[200px] h-[283px]' :
-                  previewSize === 'A4' ? 'w-[165px] h-[233px]' :
-                  'w-[130px] h-[184px]'
-                }`}
-              >
-                <Image src={selectedPoster.images?.[0]?.url || ""} alt={selectedPoster.title} fill className="object-cover w-full h-full" style={{ objectFit: 'cover' }} />
-              </div>
+              {(() => {
+                const maxW = previewSize === 'A3' ? 283 : previewSize === 'A4' ? 233 : 184;
+                const maxH = previewSize === 'A3' ? 283 : previewSize === 'A4' ? 233 : 184;
+                let w = maxW;
+                let h = maxW / posterAspectRatio;
+                if (h > maxH) {
+                  h = maxH;
+                  w = h * posterAspectRatio;
+                }
+                return (
+                  <div
+                    className="relative rounded bg-transparent border-[8px] border-stone-950 shadow-2xl transition-all duration-300"
+                    style={{ width: `${Math.round(w)}px`, height: `${Math.round(h)}px` }}
+                  >
+                    <Image
+                      src={selectedPoster.images?.[0]?.url || ""}
+                      alt={selectedPoster.title}
+                      fill
+                      className="object-contain w-full h-full"
+                      style={{ objectFit: 'contain' }}
+                      onLoad={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (img.naturalWidth && img.naturalHeight) {
+                          setPosterAspectRatio(img.naturalWidth / img.naturalHeight);
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-4 text-xs flex flex-col justify-between">
               <div>
