@@ -4,16 +4,21 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminPasswordHash = await bcrypt.hash("AdminPass123!", 10);
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@posterstore.com").toLowerCase().trim();
+  const adminPassword = process.env.ADMIN_PASSWORD || "AdminPass123!";
+
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
   const customerPasswordHash = await bcrypt.hash("CustomerPass123!", 10);
 
   // 1. Seed Super Admin
   const admin = await prisma.admin.upsert({
-    where: { email: "admin@posterstore.com" },
-    update: {},
+    where: { email: adminEmail },
+    update: {
+      password: adminPasswordHash,
+    },
     create: {
       name: "Super Admin",
-      email: "admin@posterstore.com",
+      email: adminEmail,
       password: adminPasswordHash,
       role: AdminRole.SUPER_ADMIN,
     },

@@ -395,6 +395,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     }
   };
 
+  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@posterstore.com").toLowerCase().trim();
+
   // Current Active Mode: "STOREFRONT" or "ADMIN_CMS"
   const [viewMode, setViewMode] = useState<"STOREFRONT" | "ADMIN_CMS">("STOREFRONT");
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: "ADMIN" | "CUSTOMER" } | null>(null);
@@ -405,7 +407,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     if (session?.user) {
       setCurrentUser({
         name: session.user.name || "Super Admin",
-        email: session.user.email || "admin@posterstore.com",
+        email: session.user.email || (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@posterstore.com"),
         role: session.user.role as "ADMIN" | "CUSTOMER",
       });
     } else if (sessionStatus === "unauthenticated") {
@@ -494,7 +496,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
   const [artworkFile, setArtworkFile] = useState<File | null>(null);
   const [artworkPreviewUrl, setArtworkPreviewUrl] = useState<string | null>(null);
   const [artworkTitle, setArtworkTitle] = useState("");
-  const [selectedSize, setSelectedSize] = useState("A3 (11.7 x 16.5 in)");
+  const [selectedSize, setSelectedSize] = useState("A4");
+  const [previewSize, setPreviewSize] = useState<'A3' | 'A4' | 'A5'>('A4');
   const [quantity, setQuantity] = useState(1);
   const [frameRequired, setFrameRequired] = useState(false);
   const [notes, setNotes] = useState("");
@@ -722,20 +725,28 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
         safeSetLocalStorage("maja_trending_banners", JSON.stringify(defaultBanners));
       }
 
+      const UUID_REGEX_LOADER = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      const dbPosterIds = new Set((initialPosters || []).map(p => p.id));
+      const mergedPosters: PosterItem[] = [...(initialPosters || [])];
+
       const savedPosters = localStorage.getItem("maja_posters_list");
       if (savedPosters) {
         try {
-          setPostersList(JSON.parse(savedPosters));
+          const localPosters: PosterItem[] = JSON.parse(savedPosters);
+          localPosters.forEach(p => {
+            if (!UUID_REGEX_LOADER.test(p.id)) {
+              mergedPosters.push(p);
+            }
+          });
         } catch (e) { }
-      } else {
-        safeSetLocalStorage("maja_posters_list", JSON.stringify(initialPosters));
       }
+      setPostersList(mergedPosters);
+      safeSetLocalStorage("maja_posters_list", JSON.stringify(mergedPosters));
 
       // Build the authoritative categories list:
       // DB categories (real UUIDs) always win over stale local-only entries.
       // IMPORTANT: if the DB returns 0 items, still keep localStorage entries so
       // the user doesn't lose their previously loaded categories.
-      const UUID_REGEX_LOADER = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
       const seenSlugs = new Set<string>();
       const seenNames = new Set<string>();
       const merged: CategoryItem[] = [];
@@ -764,15 +775,16 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
         try {
           const localCats: CategoryItem[] = JSON.parse(savedCategories);
           localCats.forEach(cat => {
-            const slugKey = cat.slug.toLowerCase();
-            const nameKey = cat.name.toLowerCase();
-            // Skip if already covered by a DB record (seenSlugs will catch it)
-            if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey)) {
-              // For local-only entries (non-UUID ids), skip if DB already has that slug
-              // (they will be resolved lazily from DB on submit)
-              seenSlugs.add(slugKey);
-              seenNames.add(nameKey);
-              merged.push(cat);
+            if (!UUID_REGEX_LOADER.test(cat.id)) {
+              const slugKey = cat.slug.toLowerCase().trim();
+              const nameKey = cat.name.toLowerCase().trim();
+              if (!seenSlugs.has(slugKey) && !seenNames.has(nameKey)) {
+                // For local-only entries (non-UUID ids), skip if DB already has that slug
+                // (they will be resolved lazily from DB on submit)
+                seenSlugs.add(slugKey);
+                seenNames.add(nameKey);
+                merged.push(cat);
+              }
             }
           });
         } catch (e) { }
@@ -792,7 +804,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
         name: sub.name,
         slug: sub.slug,
         categorySlug: sub.category?.slug || "",
-        posterIds: initialPosters
+        posterIds: (initialPosters || [])
           .filter((p) => p.subCategory?.slug === sub.slug || p.subCategory?.id === sub.id)
           .map((p) => p.id),
         description: sub.description || "",
@@ -815,10 +827,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
         try {
           const localSubs: SubTopic[] = JSON.parse(savedSubTopics);
           localSubs.forEach(st => {
-            const key = `${st.slug}::${st.categorySlug}`;
-            if (!seenSubSlugs.has(key)) {
-              seenSubSlugs.add(key);
-              mergedSubTopics.push(st);
+            if (!UUID_REGEX_LOADER.test(st.id)) {
+              const key = `${st.slug}::${st.categorySlug}`;
+              if (!seenSubSlugs.has(key)) {
+                seenSubSlugs.add(key);
+                mergedSubTopics.push(st);
+              }
             }
           });
         } catch (e) {}
@@ -1081,7 +1095,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     setLoginError(null);
 
     const emailClean = loginEmail.toLowerCase().trim();
-    const isAdmin = emailClean === "admin@posterstore.com" || emailClean.includes("admin");
+    const isAdmin = emailClean === adminEmail || emailClean.includes("admin");
 
     try {
       const res = await signIn("credentials", {
@@ -1097,7 +1111,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       }
 
       if (isAdmin) {
-        setCurrentUser({ name: "Super Admin", email: "admin@posterstore.com", role: "ADMIN" });
+        setCurrentUser({ name: "Super Admin", email: adminEmail, role: "ADMIN" });
         setViewMode("ADMIN_CMS");
       } else {
         const userFound = usersList.find(
@@ -1129,7 +1143,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       return;
     }
 
-    if (usersList.some((u) => u.email.toLowerCase().trim() === emailClean) || emailClean === "admin@posterstore.com") {
+    if (usersList.some((u) => u.email.toLowerCase().trim() === emailClean) || emailClean === adminEmail) {
       setLoginError("An account with this email address already exists.");
       return;
     }
@@ -1590,7 +1604,64 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
     return realId;
   };
 
-  const cartSubtotal = cart.reduce((sum, item) => sum + (item.poster.offerPrice || item.poster.basePrice) * item.quantity, 0);
+  const computeOptimalSubtotal = (cartItems: typeof cart) => {
+    const flatPrices: number[] = [];
+    cartItems.forEach(item => {
+      const price = item.poster.offerPrice || item.poster.basePrice;
+      for (let i = 0; i < item.quantity; i++) {
+        flatPrices.push(price);
+      }
+    });
+
+    flatPrices.sort((a, b) => b - a);
+
+    const memo: { [key: number]: number } = {};
+
+    function minCost(index: number): number {
+      if (index >= flatPrices.length) return 0;
+      if (index in memo) return memo[index];
+
+      const remaining = flatPrices.length - index;
+      let cost = Infinity;
+
+      // Option 1: Standard single poster pricing
+      cost = Math.min(cost, flatPrices[index] + minCost(index + 1));
+
+      // Option 2: Pack of 3 (costs 199 total)
+      if (remaining >= 3) {
+        cost = Math.min(cost, 199 + minCost(index + 3));
+      }
+
+      // Option 3: Pack of 5 (costs 399 total)
+      if (remaining >= 5) {
+        cost = Math.min(cost, 399 + minCost(index + 5));
+      }
+
+      // Option 4: Pack of 10 (costs 699 total)
+      if (remaining >= 10) {
+        cost = Math.min(cost, 699 + minCost(index + 10));
+      }
+
+      memo[index] = cost;
+      return cost;
+    }
+
+    const optimalPrintCost = minCost(0);
+
+    // Add frame surcharges on top: ₹499 per framed poster
+    let totalFrameCost = 0;
+    cartItems.forEach(item => {
+      if (item.frame) {
+        totalFrameCost += 499 * item.quantity;
+      }
+    });
+
+    return optimalPrintCost + totalFrameCost;
+  };
+
+  const standardSubtotal = cart.reduce((sum, item) => sum + ((item.poster.offerPrice || item.poster.basePrice) + (item.frame ? 499 : 0)) * item.quantity, 0);
+  const cartSubtotal = computeOptimalSubtotal(cart);
+  const bundleSavings = standardSubtotal - cartSubtotal;
   const cartShipping = selectedShippingOption ? selectedShippingOption.price : (cartSubtotal >= 999 ? 0 : 49);
   const cartGST = Math.round(cartSubtotal * 0.18);
   const cartTotal = cartSubtotal + cartShipping + cartGST;
@@ -2989,16 +3060,17 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
                           <div className="space-y-1.5">
                             <label className="font-semibold">Desired Print Size *</label>
-                            <select
-                              value={selectedSize}
-                              onChange={(e) => setSelectedSize(e.target.value)}
-                              className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border"
-                            >
-                              <option value="A4">A4 Size (Standard)</option>
-                              <option value="A3">A3 Size (Wide)</option>
-                              <option value="POLAROID">Polaroid Size (Square)</option>
-                              <option value="SQUARE">Square Canvas (Format)</option>
-                            </select>
+                              <select
+                                value={selectedSize}
+                                onChange={(e) => setSelectedSize(e.target.value)}
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border"
+                              >
+                                <option value="A5">A5 Size (Small)</option>
+                                <option value="A4">A4 Size (Standard)</option>
+                                <option value="A3">A3 Size (Wide)</option>
+                                <option value="POLAROID">Polaroid Size (Square)</option>
+                                <option value="SQUARE">Square Canvas (Format)</option>
+                              </select>
                           </div>
                         </div>
 
@@ -3019,7 +3091,13 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                         <p className="text-[10px] text-muted-foreground">Live representation of your selected {selectedSize} format</p>
                       </div>
 
-                      <div className="w-full aspect-[3/4] max-w-[280px] bg-stone-900 border-[12px] border-stone-950 rounded shadow-2xl relative flex items-center justify-center overflow-hidden transition-all duration-300">
+                      <div className={`w-full max-w-[280px] bg-stone-900 border-[12px] border-stone-950 rounded shadow-2xl relative flex items-center justify-center overflow-hidden transition-all duration-300 ${
+                        selectedSize === 'A3' ? 'aspect-[1/1.414]' :
+                        selectedSize === 'A4' ? 'aspect-[1/1.414] scale-95' :
+                        selectedSize === 'A5' ? 'aspect-[1/1.414] scale-90' :
+                        selectedSize === 'POLAROID' ? 'aspect-square scale-90' :
+                        'aspect-square'
+                      }`}>
                         {artworkPreviewUrl ? (
                           <Image
                             src={artworkPreviewUrl}
@@ -3656,12 +3734,24 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                             <p className="text-[10px] text-zinc-400 uppercase font-mono mt-0.5">{poster.category?.name || "General"}</p>
                           </div>
 
-                          {/* Live Poster Price Editing Controls */}
+                          {/* Live Poster Detail Editing Controls */}
                           <div className="p-3 rounded-xl bg-black border border-zinc-800 space-y-2 text-xs">
-                            <p className="font-bold text-[10px] uppercase text-zinc-400">Edit Poster Prices (₹)</p>
+                            <p className="font-bold text-[10px] uppercase text-zinc-400">Edit Poster Details</p>
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-zinc-500 font-semibold block">Title</label>
+                              <input
+                                type="text"
+                                value={poster.title}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setPostersList(prev => prev.map(p => p.id === poster.id ? { ...p, title: val } : p));
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-xs"
+                              />
+                            </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="text-[9px] text-zinc-500 font-semibold block">Base Price</label>
+                                <label className="text-[9px] text-zinc-500 font-semibold block">Base Price (₹)</label>
                                 <input
                                   type="number"
                                   value={poster.basePrice}
@@ -3674,7 +3764,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                               </div>
 
                               <div>
-                                <label className="text-[9px] text-zinc-500 font-semibold block">Offer Price</label>
+                                <label className="text-[9px] text-zinc-500 font-semibold block">Offer Price (₹)</label>
                                 <input
                                   type="number"
                                   value={poster.offerPrice || poster.basePrice}
@@ -3686,6 +3776,57 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                 />
                               </div>
                             </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] text-zinc-500 font-semibold block">Product Description</label>
+                              <textarea
+                                value={poster.description || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setPostersList(prev => prev.map(p => p.id === poster.id ? { ...p, description: val } : p));
+                                }}
+                                rows={2}
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-white text-xs resize-none"
+                                placeholder="Describe the artwork (min 10 chars)..."
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                                if (poster.description && poster.description.length < 10) {
+                                  alert("Description must be at least 10 characters long.");
+                                  return;
+                                }
+                                if (UUID_REGEX.test(poster.id)) {
+                                  try {
+                                    const res = await fetch(`/api/posters/${poster.id}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        title: poster.title,
+                                        basePrice: poster.basePrice,
+                                        offerPrice: poster.offerPrice,
+                                        description: poster.description,
+                                      }),
+                                    });
+                                    const data = await res.json();
+                                    if (data.success) {
+                                      alert("Poster details updated successfully in the database!");
+                                    } else {
+                                      alert(`Failed to save details: ${data.error}`);
+                                    }
+                                  } catch (err) {
+                                    console.error("Failed to patch poster in DB:", err);
+                                    alert("Error saving details to database.");
+                                  }
+                                } else {
+                                  alert("Saved locally! (This poster is not synced with the database yet)");
+                                }
+                              }}
+                              className="w-full py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] mt-1 transition-all"
+                            >
+                              Save Details
+                            </button>
                           </div>
                         </div>
 
@@ -3693,9 +3834,26 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm(`Are you sure you want to delete "${poster.title}" from the store catalog?`)) {
+                                const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+                                if (UUID_REGEX.test(poster.id)) {
+                                  try {
+                                    const res = await fetch(`/api/posters/${poster.id}`, { method: "DELETE" });
+                                    const data = await res.json();
+                                    if (!data.success) {
+                                      alert(`Failed to delete poster: ${data.error || "Unknown error"}`);
+                                      return;
+                                    }
+                                  } catch (err) {
+                                    console.error("Failed to delete poster from DB:", err);
+                                    alert("Failed to delete poster from database. Please check connection.");
+                                    return;
+                                  }
+                                }
                                 setPostersList(prev => prev.filter(p => p.id !== poster.id));
+                                setSubTopicsList(prev => prev.map(s => ({ ...s, posterIds: s.posterIds.filter(id => id !== poster.id) })));
+                                if (editingSubTopic) setEditingSubTopic(prev => prev ? { ...prev, posterIds: prev.posterIds.filter(id => id !== poster.id) } : null);
                               }
                             }}
                             className="p-2.5 rounded-xl border border-zinc-800 hover:border-red-500 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-colors"
@@ -4210,11 +4368,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                           title="Edit sub-category info"
                                         ><Edit className="w-3 h-3" /></button>
                                         <button
-                                          onClick={() => {
-                                            setSubTopicsList((prev) => prev.filter(
-                                              (s) => !(s.slug === st.slug && s.categorySlug === st.categorySlug)
-                                            ));
-                                            if (editingSubTopic?.id === st.id) setEditingSubTopic(null);
+                                          onClick={async () => {
+                                            if (confirm(`Are you sure you want to delete the sub-category "${st.name}"?`)) {
+                                              await handleDeleteSubTopic(st.id);
+                                            }
                                           }}
                                           className="p-1 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-zinc-800 transition-colors"
                                           title="Delete sub-category"
@@ -5200,10 +5357,27 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                     <div className="px-4 sm:px-6 border-t pt-5 space-y-4" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
                       {/* Price breakdown */}
                       <div className="space-y-1.5 text-[11px]">
-                        <div className="flex justify-between">
-                          <span className="text-zinc-400">Bag Subtotal</span>
-                          <span className="font-semibold">{formatCurrency(cartSubtotal)}</span>
-                        </div>
+                        {bundleSavings > 0 ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-zinc-400">Items Subtotal</span>
+                              <span className="font-semibold text-zinc-400 line-through">{formatCurrency(standardSubtotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-emerald-400 font-bold">
+                              <span>Multi-Buy Pack Discount</span>
+                              <span>-{formatCurrency(bundleSavings)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold">
+                              <span className="text-white">Discounted Subtotal</span>
+                              <span className="text-white">{formatCurrency(cartSubtotal)}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex justify-between">
+                            <span className="text-zinc-400">Bag Subtotal</span>
+                            <span className="font-semibold">{formatCurrency(cartSubtotal)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span className="text-zinc-400">GST (18% inclusive estimate)</span>
                           <span className="font-semibold">{formatCurrency(cartGST)}</span>
@@ -5523,7 +5697,6 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
             <div className="p-3 rounded-xl bg-muted/40 text-[10px] text-muted-foreground space-y-1 font-mono">
               <p className="font-bold text-foreground">Test Accounts:</p>
-              <p>• Admin: admin@posterstore.com / AdminPass123!</p>
               <p>• Customer: customer@example.com / CustomerPass123!</p>
             </div>
           </div>
@@ -5532,17 +5705,53 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
       {/* QUICK VIEW POSTER LIGHTBOX MODAL */}
       {selectedPoster && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setSelectedPoster(null)}>
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => { setSelectedPoster(null); setPreviewSize('A4'); }}>
           <div className="w-full max-w-2xl bg-card border border-border rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-6" onClick={(e) => e.stopPropagation()}>
-            <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
-              <Image src={selectedPoster.images?.[0]?.url || ""} alt={selectedPoster.title} fill className="object-cover" />
+            <div className="flex flex-col items-center justify-center bg-zinc-950 rounded-xl p-4 min-h-[300px] border border-zinc-900 relative overflow-hidden">
+              <div className="absolute top-2.5 left-2.5 text-[9px] text-zinc-500 font-mono">
+                Size Preview ({previewSize === 'A3' ? '29.7 x 42 cm' : previewSize === 'A4' ? '21 x 29.7 cm' : '14.8 x 21 cm'})
+              </div>
+              <div
+                className={`relative rounded bg-stone-900 border-[8px] border-stone-950 shadow-2xl transition-all duration-300 ${
+                  previewSize === 'A3' ? 'w-[200px] h-[283px]' :
+                  previewSize === 'A4' ? 'w-[165px] h-[233px]' :
+                  'w-[130px] h-[184px]'
+                }`}
+              >
+                <Image src={selectedPoster.images?.[0]?.url || ""} alt={selectedPoster.title} fill className="object-cover" />
+              </div>
             </div>
             <div className="space-y-4 text-xs flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase" style={{ color: '#C9A227' }}>{selectedPoster.category?.name}</span>
                 <h2 className="text-lg font-bold text-foreground mt-1">{selectedPoster.title}</h2>
                 <p className="text-base font-extrabold text-foreground mt-2">{formatCurrency(selectedPoster.offerPrice || selectedPoster.basePrice)}</p>
-                <p className="text-muted-foreground mt-2 leading-relaxed">{selectedPoster.description}</p>
+                
+                {/* Size Selector inside Preview */}
+                <div className="mt-4 space-y-2">
+                  <label className="font-bold text-zinc-400 block text-[10px] uppercase tracking-wider">Select Size Preview:</label>
+                  <div className="flex gap-2">
+                    {(['A3', 'A4', 'A5'] as const).map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setPreviewSize(sz)}
+                        className={`flex-1 py-2 rounded-xl font-bold border transition-all ${
+                          previewSize === sz 
+                            ? 'bg-white border-white text-black' 
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
+                        }`}
+                      >
+                        {sz}
+                        <span className="block text-[8px] font-normal opacity-80 mt-0.5">
+                          {sz === 'A3' ? '29.7x42cm' : sz === 'A4' ? '21x29.7cm' : '14.8x21cm'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground mt-3 leading-relaxed">{selectedPoster.description}</p>
               </div>
               <div className="space-y-2">
                 {(() => {

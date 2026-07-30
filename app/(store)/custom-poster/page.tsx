@@ -196,6 +196,7 @@ export default function CustomPosterUploadPage() {
                 onChange={(e) => setSelectedSize(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border focus:ring-2 focus:ring-brand-500"
               >
+                <option value="A5 (5.8 x 8.3 in)">A5 (5.8 x 8.3 inches)</option>
                 <option value="A4 (8.3 x 11.7 in)">A4 (8.3 x 11.7 inches)</option>
                 <option value="A3 (11.7 x 16.5 in)">A3 (11.7 x 16.5 inches)</option>
                 <option value="A2 (16.5 x 23.4 in)">A2 (16.5 x 23.4 inches)</option>

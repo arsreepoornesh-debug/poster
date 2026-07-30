@@ -30,10 +30,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const userType = credentials.userType === "CUSTOMER" ? "CUSTOMER" : "ADMIN";
 
         if (userType === "ADMIN") {
-          if (email === "admin@posterstore.com" && password === "AdminPass123!") {
+          const adminEmail = (process.env.ADMIN_EMAIL || "admin@posterstore.com").toLowerCase().trim();
+          const adminPassword = process.env.ADMIN_PASSWORD || "AdminPass123!";
+
+          if (email === adminEmail && password === adminPassword) {
             return {
               id: "admin-super-id-001",
-              email: "admin@posterstore.com",
+              email: adminEmail,
               name: "Super Admin",
               role: "ADMIN" as const,
               adminRole: "SUPER_ADMIN",
