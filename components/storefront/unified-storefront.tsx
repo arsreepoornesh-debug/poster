@@ -1,5 +1,7 @@
 "use client";
 
+// Trigger fresh Vercel rebuild - 2026-07-30
+
 import React, { useState, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Image from "next/image";
