@@ -1861,8 +1861,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
       {viewMode === "STOREFRONT" && (
         <div className="w-full flex flex-col flex-1">
           {/* Header Navigation Bar */}
-          <header className="w-full bg-black text-white border-b border-zinc-800/60 shadow-2xl z-50 sticky top-0">
-            <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-4 sm:gap-6">
+          <header className="w-full bg-black text-white border-b border-zinc-800/60 shadow-2xl z-50 sticky top-0 sf-header">
+            <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 h-14 sm:h-20 flex items-center justify-between gap-4 sm:gap-6 sf-header-inner">
               {/* Logo on Left */}
               <div
                 className="flex items-center gap-1.5 sm:gap-2 select-none cursor-pointer flex-shrink-0"
@@ -1876,10 +1876,10 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                   }
                 }}
               >
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-white/10 border border-white/20 p-0.5 flex-shrink-0">
+                <div className="w-[28px] h-[28px] sm:w-8 sm:h-8 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-white/10 border border-white/20 p-0.5 flex-shrink-0 sf-logo-img-wrap">
                   <img src="/assets/images/logo.png" alt="Maja Posters Logo" className="w-full h-full object-contain" />
                 </div>
-                <div className="relative h-5 sm:h-6 w-28 sm:w-44 overflow-hidden">
+                <div className="relative h-5 sm:h-6 w-28 sm:w-44 overflow-hidden hidden md:block sf-logo-text">
                   <TextPressure
                     text="MAJA POSTERS"
                     flex
@@ -2011,8 +2011,8 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 </div>
 
                 {/* Mobile Centered Search Bar (visible only on mobile below 768px) */}
-                <div className="md:hidden flex items-center justify-center flex-1 w-full max-w-[170px] xs:max-w-[180px] sm:max-w-[200px] min-w-[90px]">
-                  <div className="flex items-center gap-1.5 rounded-full border border-zinc-850 bg-zinc-900/80 px-2.5 py-1 w-full">
+                <div className="md:hidden flex items-center justify-center flex-1 w-full max-w-[160px] min-w-0 sf-search-mobile">
+                  <div className="flex items-center gap-1 rounded-full border border-zinc-850 bg-zinc-900/80 px-2 py-0.5 w-full">
                     <Search className="w-3.5 h-3.5 text-zinc-400 flex-shrink-0" />
                     <input
                       type="text"
@@ -2034,7 +2034,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
               </div>
 
               {/* Right Side Icons exactly like the image with dark theme styling */}
-              <div className="flex items-center gap-2 text-white flex-shrink-0">
+              <div className="flex items-center gap-1.5 md:gap-2 text-white flex-shrink-0 sf-right-row">
                 {/* Custom Poster Upload button */}
                 <button
                   onClick={() => setActiveTab("CUSTOM_UPLOAD")}
@@ -2137,7 +2137,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 {/* Wishlist Heart Icon */}
                 <button
                   onClick={() => setIsWishlistOpen(true)}
-                  className="flex p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors"
+                  className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors sf-wishlist-btn"
                 >
                   <Heart className="w-4 h-4" />
                   {wishlist.length > 0 && (
@@ -2150,7 +2150,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                 {/* Cart Bag Icon */}
                 <button
                   onClick={() => setIsCartOpen(true)}
-                  className="flex p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors"
+                  className="flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:p-2.5 rounded-full hover:bg-zinc-800 text-white relative transition-colors sf-cart-btn"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   {cart.length > 0 && (
@@ -2162,7 +2162,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
                 {/* Mobile menu trigger inline next to search (hidden on desktop >= 768px) */}
                 <StaggeredMenu
-                  className="md:hidden"
+                  className="md:hidden sf-hamburger-menu"
                   position="right"
                   items={menuItems}
                   socialItems={socialItems}
@@ -2187,7 +2187,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
               className="w-full border-b border-t-0 text-xs font-semibold text-white/90 z-40"
               style={{ backgroundColor: "rgba(212,255,61,0.08)", borderColor: "rgba(212,255,61,0.25)" }}
             >
-              <div className="w-full max-w-[1400px] mx-auto px-6 py-2.5 flex items-center justify-between gap-3">
+              <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-2.5 flex items-center justify-between gap-3 sf-delivery-banner">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="text-base flex-shrink-0">📦</span>
                   <span className="leading-snug">
@@ -2281,7 +2281,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
               <>
                 {/* Redesigned Hero Section — only shown on All Prints */}
                 {!selectedCategory && !selectedSubTopic && (
-                  <section className="relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[420px] sm:min-h-[550px] w-full bg-black pt-8 pb-12 sm:pt-0 sm:pb-0">
+                  <section className="relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[420px] sm:min-h-[550px] w-full bg-black pt-8 pb-12 sm:pt-0 sm:pb-0 sf-hero-section">
  
                     {/* Entire Background Hyperspeed WebGL Animation */}
                     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -2300,9 +2300,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                         <span>Museum-Grade Premium Posters</span>
                       </div>
  
-                      <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight text-center max-w-xl sm:max-w-2xl mx-auto">
-                        Transform Your Space with{" "}
-                        <span className="inline-flex justify-center min-w-[110px] sm:min-w-[160px] align-middle">
+                      <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight text-center max-w-xl sm:max-w-2xl mx-auto sf-hero-headline">
+                        <span className="block md:inline">Transform Your Space with</span>{" "}
+                        <span className="inline-flex justify-center min-w-[190px] sm:min-w-[340px] align-middle overflow-hidden whitespace-nowrap my-1 md:my-0 sf-hero-rotate-wrapper">
                           <TextRotate
                             texts={[
                               "anime",
@@ -2313,15 +2313,15 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                               "cars and bikes",
                               "songs and creators"
                             ]}
-                            mainClassName="inline-flex justify-center font-extrabold text-[#D4FF3D]"
+                            mainClassName="inline-flex justify-center font-extrabold text-[#D4FF3D] flex-nowrap whitespace-nowrap"
                             staggerDuration={0.02}
                             rotationInterval={2000}
                           />
                         </span>{" "}
-                        Wall Prints
+                        <span className="block md:inline">Wall Prints</span>
                       </h1>
  
-                      <p className="text-zinc-400 text-xs sm:text-base leading-relaxed max-w-lg sm:max-w-xl text-center">
+                      <p className="text-zinc-400 text-xs sm:text-base leading-relaxed max-w-lg sm:max-w-xl text-center sf-hero-description">
                         Shop premium high-res posters or upload your custom design (5MB–50MB). Printed on 300 GSM matte archive paper with matte black wooden frame choices.
                       </p>
  
@@ -2330,14 +2330,14 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                           onClick={() => {
                             document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                           }}
-                          className="w-full sm:w-auto px-6 py-3 rounded-2xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-105" style={{ backgroundColor: '#D4FF3D', color: '#0D0D0D' }}
+                          className="w-full sm:w-auto px-6 py-3 rounded-2xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-105 sf-hero-btn-shop" style={{ backgroundColor: '#D4FF3D', color: '#0D0D0D' }}
                         >
                           <span>Shop Posters</span>
                           <ArrowRight className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setActiveTab("CUSTOM_UPLOAD")}
-                          className="w-full sm:w-auto px-6 py-3 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 hover:scale-105 text-white" style={{ border: '2px solid rgba(255,255,255,0.7)', backgroundColor: 'transparent' }}
+                          className="w-full sm:w-auto px-6 py-3 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 hover:scale-105 text-white sf-hero-btn-upload" style={{ border: '2px solid rgba(255,255,255,0.7)', backgroundColor: 'transparent' }}
                         >
                           <UploadCloud className="w-4 h-4 text-white" />
                           <span>Upload Your Poster</span>
@@ -2350,9 +2350,9 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                  {/* Catalog Section & Other Sections Wrapper */}
                 <div className="w-full max-w-[1400px] mx-auto px-6 mt-8 sm:mt-16 space-y-10 sm:space-y-16 pb-16">
                   <div id="catalog-section" className="space-y-6 scroll-mt-24">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center justify-between flex-wrap gap-4 trending-header">
                       <div>
-                        <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3">
+                        <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3 trending-title">
                           {currentSubTopic
                             ? `${currentSubTopic.name} Prints`
                             : selectedCategory
@@ -2360,7 +2360,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                               : "Trending Prints"}
                           <span className="inline-block h-1 w-12 rounded-full" style={{ backgroundColor: '#D4FF3D' }}></span>
                         </h2>
-                        <p className="text-xs text-muted-foreground mt-0.5">Showing {filteredPosters.length} premium designs</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 trending-subtitle">Showing {filteredPosters.length} premium designs</p>
                       </div>
  
                       {!selectedCategory && currentUser?.role === "ADMIN" && (
@@ -2409,26 +2409,27 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                       filteredPosters.length > 0 ? (
                         /* Infinite Horizontal Marquee for Trending Prints */
                         <ScrollReveal>
-                          <div className="w-full overflow-hidden relative py-4 border-y border-border/30 bg-muted/10">
+                          <div className="w-full relative py-4 border-y border-border/30 bg-muted/10 overflow-x-auto md:overflow-hidden scrollbar-none snap-x snap-mandatory sf-trending-row">
                             {/* Blur layout covers */}
-                            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-                            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+                            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none hidden md:block" />
+                            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none hidden md:block" />
  
-                            <div className="flex animate-marquee hover:[animation-play-state:paused] gap-6">
+                            <div className="flex animate-marquee hover:[animation-play-state:paused] gap-3 md:gap-6 scroll-smooth snap-x snap-mandatory trending-scroll-container">
                               {/* Duplicate posters once for seamless looping */}
                               {[...filteredPosters, ...filteredPosters].map((poster, index) => (
                                 <div
                                   key={`${poster.id}-${index}`}
-                                  className={`w-[240px] flex-shrink-0 bg-card rounded-2xl overflow-hidden border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between ${cartAnimatingId === poster.id ? "scale-105 border-[#D4FF3D] ring-2 ring-[#D4FF3D]/20 animate-pulse" : "border-border/80"}`}
+                                  className={`w-[160px] md:w-[240px] flex-shrink-0 snap-start bg-card rounded-2xl overflow-hidden border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between sf-trending-card product-card ${cartAnimatingId === poster.id ? "scale-105 border-[#D4FF3D] ring-2 ring-[#D4FF3D]/20 animate-pulse" : "border-border/80"}`}
                                 >
-                                  <div className="relative w-full h-[220px] sm:h-[240px] bg-muted overflow-hidden flex items-center justify-center">
+                                  <div className="bg-muted overflow-hidden flex items-center justify-center" style={{ position: 'relative', width: '100%', aspectRatio: '3/4' }}>
                                     {poster.images?.[0]?.url ? (
                                       <Image
                                         src={poster.images[0].url}
                                         alt={poster.title}
                                         fill
-                                        sizes="240px"
-                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                        style={{ objectFit: 'cover' }}
+                                        sizes="(max-width: 768px) 50vw, 300px"
+                                        className="group-hover:scale-105 transition-transform duration-500"
                                       />
                                     ) : (
                                       <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 to-zinc-50 flex flex-col items-center justify-center p-4 text-center">
@@ -2456,13 +2457,13 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                     </div>
                                   </div>
 
-                                  <div className="p-4 space-y-2 text-xs">
-                                    <span className="text-[9px] uppercase font-bold tracking-wider" style={{ color: '#D4FF3D' }}>
+                                  <div className="p-4 space-y-2 text-xs sf-trending-card-text product-card-info">
+                                    <span className="text-[9px] uppercase font-bold tracking-wider product-card-category" style={{ color: '#D4FF3D' }}>
                                       {poster.category?.name || "Premium Print"}
                                     </span>
                                     <h3
                                       onClick={() => setSelectedPoster(poster)}
-                                      className="font-bold text-sm text-foreground line-clamp-1 cursor-pointer transition-colors hover:text-[#D4FF3D]"
+                                      className="font-bold text-sm text-foreground line-clamp-1 cursor-pointer transition-colors hover:text-[#D4FF3D] product-card-title"
                                     >
                                       {poster.title}
                                     </h3>
@@ -2476,12 +2477,12 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                     </div>
 
                                     <div className="flex items-center justify-between pt-2">
-                                      <div className="flex items-baseline gap-2">
+                                      <div className="flex items-baseline gap-2 product-card-price">
                                         <span className="font-extrabold text-sm text-foreground">
                                           {formatCurrency(poster.offerPrice || poster.basePrice)}
                                         </span>
                                         {poster.offerPrice && (
-                                          <span className="text-[10px] text-muted-foreground line-through">
+                                          <span className="text-[10px] text-muted-foreground line-through original">
                                             {formatCurrency(poster.basePrice)}
                                           </span>
                                         )}
@@ -2515,7 +2516,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                                         return (
                                           <button
                                             onClick={() => addToCart(poster)}
-                                            className="px-3.5 py-2 rounded-xl font-bold text-[10px] shadow-sm transition-all hover:scale-105" style={{ backgroundColor: '#D4FF3D', color: '#0D0D0D' }}
+                                            className="px-3.5 py-2 rounded-xl font-bold text-[10px] shadow-sm transition-all hover:scale-105 sf-add-to-cart-btn add-to-cart-btn" style={{ backgroundColor: '#D4FF3D', color: '#0D0D0D' }}
                                           >
                                             Add to Cart
                                           </button>
@@ -3041,34 +3042,34 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                       {/* Why Choose Us — dark stat strip */}
                       <ScrollReveal>
                         <section className="rounded-3xl overflow-hidden" style={{ backgroundColor: '#0D0D0D' }}>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[rgba(212,255,61,0.15)]">
-                            <div className="flex flex-col items-start space-y-3 p-8 border-r" style={{ borderColor: 'rgba(212,255,61,0.12)' }}>
-                              <div className="p-3 rounded-2xl" style={{ backgroundColor: 'rgba(212,255,61,0.15)', border: '1px solid rgba(212,255,61,0.3)' }}>
-                                <Truck className="w-7 h-7" style={{ color: '#D4FF3D' }} />
+                          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[rgba(212,255,61,0.15)] sf-features-grid">
+                            <div className="flex flex-col items-start space-y-3 p-8 border-r sf-features-item" style={{ borderColor: 'rgba(212,255,61,0.12)' }}>
+                              <div className="p-3 rounded-2xl sf-features-icon-wrap" style={{ backgroundColor: 'rgba(212,255,61,0.15)', border: '1px solid rgba(212,255,61,0.3)' }}>
+                                <Truck className="w-7 h-7 sf-features-icon" style={{ color: '#D4FF3D' }} />
                               </div>
                               <div>
-                                <h4 className="font-extrabold text-white text-base">Express Chennai Queue</h4>
-                                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Local shipping &amp; priority dispatch within 24 hours across all Chennai zones.</p>
+                                <h4 className="font-extrabold text-white text-base sf-features-title">Express Chennai Queue</h4>
+                                <p className="text-xs mt-1 sf-features-desc" style={{ color: 'rgba(255,255,255,0.5)' }}>Local shipping &amp; priority dispatch within 24 hours across all Chennai zones.</p>
                               </div>
                               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(212,255,61,0.1)', color: '#D4FF3D' }}>Same-Day Available</span>
                             </div>
-                            <div className="flex flex-col items-start space-y-3 p-8 border-r" style={{ borderColor: 'rgba(212,255,61,0.12)' }}>
-                              <div className="p-3 rounded-2xl" style={{ backgroundColor: 'rgba(212,255,61,0.15)', border: '1px solid rgba(212,255,61,0.3)' }}>
-                                <Award className="w-7 h-7" style={{ color: '#D4FF3D' }} />
+                            <div className="flex flex-col items-start space-y-3 p-8 border-r sf-features-item" style={{ borderColor: 'rgba(212,255,61,0.12)' }}>
+                              <div className="p-3 rounded-2xl sf-features-icon-wrap" style={{ backgroundColor: 'rgba(212,255,61,0.15)', border: '1px solid rgba(212,255,61,0.3)' }}>
+                                <Award className="w-7 h-7 sf-features-icon" style={{ color: '#D4FF3D' }} />
                               </div>
                               <div>
-                                <h4 className="font-extrabold text-white text-base">300 GSM Matte Finish</h4>
-                                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Archival quality museum boards preventing color fading for decades.</p>
+                                <h4 className="font-extrabold text-white text-base sf-features-title">300 GSM Matte Finish</h4>
+                                <p className="text-xs mt-1 sf-features-desc" style={{ color: 'rgba(255,255,255,0.5)' }}>Archival quality museum boards preventing color fading for decades.</p>
                               </div>
                               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(212,255,61,0.1)', color: '#D4FF3D' }}>Museum Grade</span>
                             </div>
-                            <div className="flex flex-col items-start space-y-3 p-8">
-                              <div className="p-3 rounded-2xl" style={{ backgroundColor: 'rgba(212,255,61,0.15)', border: '1px solid rgba(212,255,61,0.3)' }}>
-                                <RotateCcw className="w-7 h-7" style={{ color: '#D4FF3D' }} />
+                            <div className="flex flex-col items-start space-y-3 p-8 sf-features-item">
+                              <div className="p-3 rounded-2xl sf-features-icon-wrap" style={{ backgroundColor: 'rgba(212,255,61,0.15)', border: '1px solid rgba(212,255,61,0.3)' }}>
+                                <RotateCcw className="w-7 h-7 sf-features-icon" style={{ color: '#D4FF3D' }} />
                               </div>
                               <div>
-                                <h4 className="font-extrabold text-white text-base">Damage Protection</h4>
-                                <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Free transit replacement guarantee on every premium framed print order.</p>
+                                <h4 className="font-extrabold text-white text-base sf-features-title">Damage Protection</h4>
+                                <p className="text-xs mt-1 sf-features-desc" style={{ color: 'rgba(255,255,255,0.5)' }}>Free transit replacement guarantee on every premium framed print order.</p>
                               </div>
                               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'rgba(212,255,61,0.1)', color: '#D4FF3D' }}>100% Guaranteed</span>
                             </div>
@@ -3083,13 +3084,13 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
 
             {/* TAB 2: EMBEDDED CUSTOM UPLOAD */}
             {activeTab === "CUSTOM_UPLOAD" && (
-              <div className="w-full max-w-[1400px] mx-auto px-6 py-12 space-y-8">
+              <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 py-12 space-y-8 sf-custom-upload-section">
                 <div className="text-center space-y-3">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: 'rgba(201,162,39,0.1)', color: '#C9A227' }}>
                     <UploadCloud className="w-4 h-4" />
                     <span>High-Resolution Artwork Upload Portal</span>
                   </div>
-                  <h1 className="text-3xl font-extrabold tracking-tight">Create Your Own Custom Poster</h1>
+                  <h1 className="text-3xl font-extrabold tracking-tight sf-custom-upload-headline">Create Your Own Custom Poster</h1>
                   <p className="text-xs text-muted-foreground max-w-xl mx-auto">
                     Upload your artwork (5MB – 50MB). Admins review file resolution before printing on 300 GSM matte paper.
                   </p>
@@ -3169,7 +3170,7 @@ export function UnifiedStorefront({ initialCategories, initialSubCategories, ini
                         <button
                           type="submit"
                           disabled={isUploading}
-                          className="w-full py-3 px-6 rounded-xl text-white font-bold text-xs shadow-md" style={{ backgroundColor: '#C9A227' }}
+                          className="w-full py-3 px-6 rounded-xl text-white font-bold text-xs shadow-md sf-custom-upload-btn" style={{ backgroundColor: '#C9A227' }}
                         >
                           {isUploading ? "Uploading Artwork..." : "Submit Custom Artwork for Admin Review"}
                         </button>

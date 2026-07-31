@@ -79,7 +79,7 @@ export function StoreNavbar({
       )}
 
       {/* Main Navbar */}
-      <div className="w-full max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between gap-8">
+      <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-8">
         {/* Logo (Aligned Left) */}
         <div className="flex-shrink-0">
           <Logo />
@@ -176,7 +176,7 @@ export function StoreNavbar({
       {/* Sticky Category Navigation */}
       {categories.length > 0 && (
         <div className="border-t border-border bg-card/60 backdrop-blur-md overflow-x-auto py-2.5">
-          <div className="w-full max-w-[1400px] mx-auto px-6 flex items-center gap-4 text-xs font-semibold whitespace-nowrap">
+          <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 flex items-center gap-4 text-xs font-semibold whitespace-nowrap">
             <button
               onClick={() => onSelectCategory?.(null)}
               className={`px-4 py-1.5 rounded-full transition-all ${

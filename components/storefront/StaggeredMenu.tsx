@@ -91,9 +91,9 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       preLayerElsRef.current = preLayers;
 
       const offscreen = position === 'left' ? -100 : 100;
-      gsap.set([panel, ...preLayers], { xPercent: offscreen, opacity: 1 });
+      gsap.set([panel, ...preLayers], { xPercent: offscreen, opacity: 0, visibility: 'hidden' });
       if (preContainer) {
-        gsap.set(preContainer, { xPercent: 0, opacity: 1 });
+        gsap.set(preContainer, { xPercent: 0, opacity: 0, visibility: 'hidden' });
       }
       gsap.set(plusH, { transformOrigin: '50% 50%', rotate: 0 });
       gsap.set(plusV, { transformOrigin: '50% 50%', rotate: 90 });
@@ -139,6 +139,12 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     }
 
     const tl = gsap.timeline({ paused: true });
+
+    // Set panel and layers visible at start of timeline
+    if (preLayersRef.current) {
+      tl.set(preLayersRef.current, { visibility: 'visible', opacity: 1 }, 0);
+    }
+    tl.set([panel, ...layers], { visibility: 'visible', opacity: 1 }, 0);
 
     layerStates.forEach((ls, i) => {
       tl.fromTo(ls.el, { xPercent: ls.start }, { xPercent: 0, duration: 0.5, ease: 'power4.out' }, i * 0.07);
@@ -248,6 +254,12 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       ease: 'power3.in',
       overwrite: 'auto',
       onComplete: () => {
+        // Hide panel and prelayers completely at end of close animation
+        gsap.set(all, { visibility: 'hidden', opacity: 0 });
+        if (preLayersRef.current) {
+          gsap.set(preLayersRef.current, { visibility: 'hidden', opacity: 0 });
+        }
+
         const itemEls = Array.from(panel.querySelectorAll('.sm-panel-itemLabel'));
         if (itemEls.length) {
           gsap.set(itemEls, { yPercent: 140, rotate: 10 });
@@ -340,9 +352,11 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     openRef.current = target;
     setOpen(target);
     if (target) {
+      document.body.classList.add('menu-open');
       onMenuOpen?.();
       playOpen();
     } else {
+      document.body.classList.remove('menu-open');
       onMenuClose?.();
       playClose();
     }
@@ -355,6 +369,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
     if (openRef.current) {
       openRef.current = false;
       setOpen(false);
+      document.body.classList.remove('menu-open');
       onMenuClose?.();
       playClose();
       animateIcon(false);
@@ -362,6 +377,13 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       animateText(false);
     }
   }, [playClose, animateIcon, animateColor, animateText, onMenuClose]);
+
+  // Clean up body scroll lock class on unmount
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('menu-open');
+    };
+  }, []);
 
   useEffect(() => {
     if (!closeOnClickAway || !open) return;
@@ -390,6 +412,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       data-position={position}
       data-open={open || undefined}
     >
+      {open && <div className="sm-backdrop" onClick={closeMenu} />}
       <div ref={preLayersRef} className="sm-prelayers" aria-hidden="true">
         {(() => {
           const raw = colors && colors.length ? colors.slice(0, 4) : ['#1e1e22', '#35353c'];
